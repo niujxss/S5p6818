@@ -1,1 +1,1 @@
-cmd_drivers/usb/gadget/built-in.o :=  /home/honey/work/arm/s5p6818sdk_lzy1/Linux/prebuilts/gcc/linux-x86/arm/arm-eabi-4.8/bin/arm-eabi-ld.bfd     -r -o drivers/usb/gadget/built-in.o drivers/usb/gadget/epautoconf.o drivers/usb/gadget/config.o drivers/usb/gadget/usbstring.o 
+cmd_drivers/usb/gadget/built-in.o :=  /home/honey/2026workspace/uboot/S5p6818/prebuilts/gcc/linux-x86/arm/arm-eabi-4.8/bin/arm-eabi-ld.bfd     -r -o drivers/usb/gadget/built-in.o drivers/usb/gadget/epautoconf.o drivers/usb/gadget/config.o drivers/usb/gadget/usbstring.o 

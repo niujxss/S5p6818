@@ -1,4 +1,4 @@
-cmd_arch/arm/cpu/slsiap/common/usbid.o := /home/honey/work/arm/s5p6818sdk_lzy1/Linux/prebuilts/gcc/linux-x86/arm/arm-eabi-4.8/bin/arm-eabi-gcc -Wp,-MD,arch/arm/cpu/slsiap/common/.usbid.o.d  -nostdinc -isystem /home/honey/work/arm/s5p6818sdk_lzy1/Linux/prebuilts/gcc/linux-x86/arm/arm-eabi-4.8/bin/../lib/gcc/arm-eabi/4.8/include -Iinclude  -I/home/honey/work/arm/s5p6818sdk_lzy1/Linux/src/uboot/arch/arm/include -D__KERNEL__ -DCONFIG_SYS_TEXT_BASE=0x43C00000 -Wall -Wstrict-prototypes -Wno-format-security -fno-builtin -ffreestanding -Os -fno-stack-protector -g -fstack-usage -Wno-format-nonliteral -DCONFIG_ARM -D__ARM__ -marm -mno-thumb-interwork -mabi=aapcs-linux -mword-relocations -ffunction-sections -fdata-sections -fno-common -ffixed-r9 -msoft-float -mno-unaligned-access -mcpu=cortex-a9 -fno-short-enums -fstrict-aliasing -I/home/honey/work/arm/s5p6818sdk_lzy1/Linux/src/uboot/arch/arm/cpu/slsiap/s5p6818/prototype/module -I/home/honey/work/arm/s5p6818sdk_lzy1/Linux/src/uboot/arch/arm/cpu/slsiap/s5p6818/prototype/base -I/home/honey/work/arm/s5p6818sdk_lzy1/Linux/src/uboot/arch/arm/include/asm/arch-s5p6818 -I/home/honey/work/arm/s5p6818sdk_lzy1/Linux/src/uboot/arch/arm/cpu/slsiap/common -I/home/honey/work/arm/s5p6818sdk_lzy1/Linux/src/uboot/arch/arm/cpu/slsiap/devices -I/home/honey/work/arm/s5p6818sdk_lzy1/Linux/src/uboot/board/s5p6818/common -D__LINUX__ -DNX_RELEASE -Wno-unused-but-set-variable -I/home/honey/work/arm/s5p6818sdk_lzy1/Linux/src/uboot/board/s5p6818/x6818/include -pipe    -D"KBUILD_STR(s)=\#s" -D"KBUILD_BASENAME=KBUILD_STR(usbid)"  -D"KBUILD_MODNAME=KBUILD_STR(usbid)" -c -o arch/arm/cpu/slsiap/common/usbid.o arch/arm/cpu/slsiap/common/usbid.c
+cmd_arch/arm/cpu/slsiap/common/usbid.o := /home/honey/2026workspace/uboot/S5p6818/prebuilts/gcc/linux-x86/arm/arm-eabi-4.8/bin/arm-eabi-gcc -Wp,-MD,arch/arm/cpu/slsiap/common/.usbid.o.d  -nostdinc -isystem /home/honey/2026workspace/uboot/S5p6818/prebuilts/gcc/linux-x86/arm/arm-eabi-4.8/bin/../lib/gcc/arm-eabi/4.8/include -Iinclude  -I/home/honey/2026workspace/uboot/S5p6818/arch/arm/include -D__KERNEL__ -DCONFIG_SYS_TEXT_BASE=0x43C00000 -Wall -Wstrict-prototypes -Wno-format-security -fno-builtin -ffreestanding -Os -fno-stack-protector -g -fstack-usage -Wno-format-nonliteral -DCONFIG_ARM -D__ARM__ -marm -mno-thumb-interwork -mabi=aapcs-linux -mword-relocations -ffunction-sections -fdata-sections -fno-common -ffixed-r9 -msoft-float -mno-unaligned-access -mcpu=cortex-a9 -fno-short-enums -fstrict-aliasing -I/home/honey/2026workspace/uboot/S5p6818/arch/arm/cpu/slsiap/s5p6818/prototype/module -I/home/honey/2026workspace/uboot/S5p6818/arch/arm/cpu/slsiap/s5p6818/prototype/base -I/home/honey/2026workspace/uboot/S5p6818/arch/arm/include/asm/arch-s5p6818 -I/home/honey/2026workspace/uboot/S5p6818/arch/arm/cpu/slsiap/common -I/home/honey/2026workspace/uboot/S5p6818/arch/arm/cpu/slsiap/devices -I/home/honey/2026workspace/uboot/S5p6818/board/s5p6818/common -D__LINUX__ -DNX_RELEASE -Wno-unused-but-set-variable -I/home/honey/2026workspace/uboot/S5p6818/board/s5p6818/x6818/include -pipe    -D"KBUILD_STR(s)=\#s" -D"KBUILD_BASENAME=KBUILD_STR(usbid)"  -D"KBUILD_MODNAME=KBUILD_STR(usbid)" -c -o arch/arm/cpu/slsiap/common/usbid.o arch/arm/cpu/slsiap/common/usbid.c
 
 source_arch/arm/cpu/slsiap/common/usbid.o := arch/arm/cpu/slsiap/common/usbid.c
 
@@ -380,61 +380,61 @@ deps_arch/arm/cpu/slsiap/common/usbid.o := \
     $(wildcard include/config/cmd/logo/update.h) \
     $(wildcard include/config/recovery/boot.h) \
     $(wildcard include/config/cmd/recovery/boot.h) \
-  /home/honey/work/arm/s5p6818sdk_lzy1/Linux/src/uboot/arch/arm/include/asm/arch-s5p6818/platform.h \
-  /home/honey/work/arm/s5p6818sdk_lzy1/Linux/src/uboot/arch/arm/include/asm/arch-s5p6818/s5p6818.h \
-  /home/honey/work/arm/s5p6818sdk_lzy1/Linux/src/uboot/arch/arm/include/asm/arch-s5p6818/s5p6818_irq.h \
-  /home/honey/work/arm/s5p6818sdk_lzy1/Linux/src/uboot/arch/arm/cpu/slsiap/s5p6818/prototype/module/nx_clkpwr.h \
-  /home/honey/work/arm/s5p6818sdk_lzy1/Linux/src/uboot/arch/arm/cpu/slsiap/s5p6818/prototype/module/../base/nx_prototype.h \
-  /home/honey/work/arm/s5p6818sdk_lzy1/Linux/src/uboot/arch/arm/cpu/slsiap/s5p6818/prototype/module/../base/nx_type.h \
-  /home/honey/work/arm/s5p6818sdk_lzy1/Linux/src/uboot/arch/arm/cpu/slsiap/s5p6818/prototype/module/../base/nx_debug.h \
-  /home/honey/work/arm/s5p6818sdk_lzy1/Linux/src/uboot/arch/arm/cpu/slsiap/s5p6818/prototype/module/../base/nx_chip.h \
-  /home/honey/work/arm/s5p6818sdk_lzy1/Linux/src/uboot/arch/arm/cpu/slsiap/s5p6818/prototype/module/../base/nx_clockcontrol.h \
-  /home/honey/work/arm/s5p6818sdk_lzy1/Linux/src/uboot/arch/arm/cpu/slsiap/s5p6818/prototype/module/../base/nx_bit_accessor.h \
-  /home/honey/work/arm/s5p6818sdk_lzy1/Linux/src/uboot/arch/arm/cpu/slsiap/s5p6818/prototype/base/nx_type.h \
-  /home/honey/work/arm/s5p6818sdk_lzy1/Linux/src/uboot/arch/arm/cpu/slsiap/s5p6818/prototype/module/nx_clkgen.h \
-  /home/honey/work/arm/s5p6818sdk_lzy1/Linux/src/uboot/arch/arm/cpu/slsiap/s5p6818/prototype/module/nx_rstcon.h \
-  /home/honey/work/arm/s5p6818sdk_lzy1/Linux/src/uboot/arch/arm/cpu/slsiap/s5p6818/prototype/module/nx_tieoff.h \
-  /home/honey/work/arm/s5p6818sdk_lzy1/Linux/src/uboot/arch/arm/cpu/slsiap/s5p6818/prototype/module/../base/nx_type.h \
-  /home/honey/work/arm/s5p6818sdk_lzy1/Linux/src/uboot/arch/arm/cpu/slsiap/s5p6818/prototype/module/nx_mcus.h \
-  /home/honey/work/arm/s5p6818sdk_lzy1/Linux/src/uboot/arch/arm/cpu/slsiap/s5p6818/prototype/module/nx_timer.h \
-  /home/honey/work/arm/s5p6818sdk_lzy1/Linux/src/uboot/arch/arm/cpu/slsiap/s5p6818/prototype/base/nx_prototype.h \
-  /home/honey/work/arm/s5p6818sdk_lzy1/Linux/src/uboot/arch/arm/cpu/slsiap/s5p6818/prototype/module/nx_alive.h \
-  /home/honey/work/arm/s5p6818sdk_lzy1/Linux/src/uboot/arch/arm/cpu/slsiap/s5p6818/prototype/module/nx_gpio.h \
-  /home/honey/work/arm/s5p6818sdk_lzy1/Linux/src/uboot/arch/arm/cpu/slsiap/s5p6818/prototype/module/nx_displaytop.h \
-  /home/honey/work/arm/s5p6818sdk_lzy1/Linux/src/uboot/arch/arm/cpu/slsiap/s5p6818/prototype/module/nx_disptop_clkgen.h \
-  /home/honey/work/arm/s5p6818sdk_lzy1/Linux/src/uboot/arch/arm/cpu/slsiap/s5p6818/prototype/module/nx_dualdisplay.h \
-  /home/honey/work/arm/s5p6818sdk_lzy1/Linux/src/uboot/arch/arm/cpu/slsiap/s5p6818/prototype/module/nx_mlc.h \
-  /home/honey/work/arm/s5p6818sdk_lzy1/Linux/src/uboot/arch/arm/cpu/slsiap/s5p6818/prototype/module/nx_dualdisplay.h \
-  /home/honey/work/arm/s5p6818sdk_lzy1/Linux/src/uboot/arch/arm/cpu/slsiap/s5p6818/prototype/module/nx_dpc.h \
-  /home/honey/work/arm/s5p6818sdk_lzy1/Linux/src/uboot/arch/arm/cpu/slsiap/s5p6818/prototype/module/nx_displaytop.h \
-  /home/honey/work/arm/s5p6818sdk_lzy1/Linux/src/uboot/arch/arm/cpu/slsiap/s5p6818/prototype/module/nx_mlc.h \
-  /home/honey/work/arm/s5p6818sdk_lzy1/Linux/src/uboot/arch/arm/cpu/slsiap/s5p6818/prototype/module/nx_dpc.h \
-  /home/honey/work/arm/s5p6818sdk_lzy1/Linux/src/uboot/arch/arm/cpu/slsiap/s5p6818/prototype/module/nx_lcdif.h \
-  /home/honey/work/arm/s5p6818sdk_lzy1/Linux/src/uboot/arch/arm/cpu/slsiap/s5p6818/prototype/module/nx_resconv.h \
-  /home/honey/work/arm/s5p6818sdk_lzy1/Linux/src/uboot/arch/arm/cpu/slsiap/s5p6818/prototype/module/nx_lvds.h \
-  /home/honey/work/arm/s5p6818sdk_lzy1/Linux/src/uboot/arch/arm/cpu/slsiap/s5p6818/prototype/module/nx_mipi.h \
+  /home/honey/2026workspace/uboot/S5p6818/arch/arm/include/asm/arch-s5p6818/platform.h \
+  /home/honey/2026workspace/uboot/S5p6818/arch/arm/include/asm/arch-s5p6818/s5p6818.h \
+  /home/honey/2026workspace/uboot/S5p6818/arch/arm/include/asm/arch-s5p6818/s5p6818_irq.h \
+  /home/honey/2026workspace/uboot/S5p6818/arch/arm/cpu/slsiap/s5p6818/prototype/module/nx_clkpwr.h \
+  /home/honey/2026workspace/uboot/S5p6818/arch/arm/cpu/slsiap/s5p6818/prototype/module/../base/nx_prototype.h \
+  /home/honey/2026workspace/uboot/S5p6818/arch/arm/cpu/slsiap/s5p6818/prototype/module/../base/nx_type.h \
+  /home/honey/2026workspace/uboot/S5p6818/arch/arm/cpu/slsiap/s5p6818/prototype/module/../base/nx_debug.h \
+  /home/honey/2026workspace/uboot/S5p6818/arch/arm/cpu/slsiap/s5p6818/prototype/module/../base/nx_chip.h \
+  /home/honey/2026workspace/uboot/S5p6818/arch/arm/cpu/slsiap/s5p6818/prototype/module/../base/nx_clockcontrol.h \
+  /home/honey/2026workspace/uboot/S5p6818/arch/arm/cpu/slsiap/s5p6818/prototype/module/../base/nx_bit_accessor.h \
+  /home/honey/2026workspace/uboot/S5p6818/arch/arm/cpu/slsiap/s5p6818/prototype/base/nx_type.h \
+  /home/honey/2026workspace/uboot/S5p6818/arch/arm/cpu/slsiap/s5p6818/prototype/module/nx_clkgen.h \
+  /home/honey/2026workspace/uboot/S5p6818/arch/arm/cpu/slsiap/s5p6818/prototype/module/nx_rstcon.h \
+  /home/honey/2026workspace/uboot/S5p6818/arch/arm/cpu/slsiap/s5p6818/prototype/module/nx_tieoff.h \
+  /home/honey/2026workspace/uboot/S5p6818/arch/arm/cpu/slsiap/s5p6818/prototype/module/../base/nx_type.h \
+  /home/honey/2026workspace/uboot/S5p6818/arch/arm/cpu/slsiap/s5p6818/prototype/module/nx_mcus.h \
+  /home/honey/2026workspace/uboot/S5p6818/arch/arm/cpu/slsiap/s5p6818/prototype/module/nx_timer.h \
+  /home/honey/2026workspace/uboot/S5p6818/arch/arm/cpu/slsiap/s5p6818/prototype/base/nx_prototype.h \
+  /home/honey/2026workspace/uboot/S5p6818/arch/arm/cpu/slsiap/s5p6818/prototype/module/nx_alive.h \
+  /home/honey/2026workspace/uboot/S5p6818/arch/arm/cpu/slsiap/s5p6818/prototype/module/nx_gpio.h \
+  /home/honey/2026workspace/uboot/S5p6818/arch/arm/cpu/slsiap/s5p6818/prototype/module/nx_displaytop.h \
+  /home/honey/2026workspace/uboot/S5p6818/arch/arm/cpu/slsiap/s5p6818/prototype/module/nx_disptop_clkgen.h \
+  /home/honey/2026workspace/uboot/S5p6818/arch/arm/cpu/slsiap/s5p6818/prototype/module/nx_dualdisplay.h \
+  /home/honey/2026workspace/uboot/S5p6818/arch/arm/cpu/slsiap/s5p6818/prototype/module/nx_mlc.h \
+  /home/honey/2026workspace/uboot/S5p6818/arch/arm/cpu/slsiap/s5p6818/prototype/module/nx_dualdisplay.h \
+  /home/honey/2026workspace/uboot/S5p6818/arch/arm/cpu/slsiap/s5p6818/prototype/module/nx_dpc.h \
+  /home/honey/2026workspace/uboot/S5p6818/arch/arm/cpu/slsiap/s5p6818/prototype/module/nx_displaytop.h \
+  /home/honey/2026workspace/uboot/S5p6818/arch/arm/cpu/slsiap/s5p6818/prototype/module/nx_mlc.h \
+  /home/honey/2026workspace/uboot/S5p6818/arch/arm/cpu/slsiap/s5p6818/prototype/module/nx_dpc.h \
+  /home/honey/2026workspace/uboot/S5p6818/arch/arm/cpu/slsiap/s5p6818/prototype/module/nx_lcdif.h \
+  /home/honey/2026workspace/uboot/S5p6818/arch/arm/cpu/slsiap/s5p6818/prototype/module/nx_resconv.h \
+  /home/honey/2026workspace/uboot/S5p6818/arch/arm/cpu/slsiap/s5p6818/prototype/module/nx_lvds.h \
+  /home/honey/2026workspace/uboot/S5p6818/arch/arm/cpu/slsiap/s5p6818/prototype/module/nx_mipi.h \
     $(wildcard include/config/ch0.h) \
     $(wildcard include/config/ch1.h) \
     $(wildcard include/config/ch2.h) \
     $(wildcard include/config/ch3.h) \
-  /home/honey/work/arm/s5p6818sdk_lzy1/Linux/src/uboot/arch/arm/cpu/slsiap/s5p6818/prototype/module/nx_hdmi.h \
+  /home/honey/2026workspace/uboot/S5p6818/arch/arm/cpu/slsiap/s5p6818/prototype/module/nx_hdmi.h \
     $(wildcard include/config/1.h) \
     $(wildcard include/config/2.h) \
-  /home/honey/work/arm/s5p6818sdk_lzy1/Linux/src/uboot/arch/arm/cpu/slsiap/s5p6818/prototype/module/nx_ecid.h \
-  /home/honey/work/arm/s5p6818sdk_lzy1/Linux/src/uboot/arch/arm/cpu/slsiap/s5p6818/prototype/module/nx_i2c.h \
-  /home/honey/work/arm/s5p6818sdk_lzy1/Linux/src/uboot/arch/arm/cpu/slsiap/s5p6818/prototype/module/nx_i2s.h \
-  /home/honey/work/arm/s5p6818sdk_lzy1/Linux/src/uboot/arch/arm/cpu/slsiap/s5p6818/prototype/module/nx_sdmmc.h \
-  /home/honey/work/arm/s5p6818sdk_lzy1/Linux/src/uboot/arch/arm/cpu/slsiap/s5p6818/prototype/module/nx_ssp.h \
-  /home/honey/work/arm/s5p6818sdk_lzy1/Linux/src/uboot/arch/arm/cpu/slsiap/s5p6818/prototype/module/nx_rtc.h \
-  /home/honey/work/arm/s5p6818sdk_lzy1/Linux/src/uboot/arch/arm/cpu/slsiap/s5p6818/prototype/module/nx_mpegtsi.h \
-  /home/honey/work/arm/s5p6818sdk_lzy1/Linux/src/uboot/arch/arm/cpu/slsiap/s5p6818/prototype/module/nx_vip.h \
-  /home/honey/work/arm/s5p6818sdk_lzy1/Linux/src/uboot/board/s5p6818/common/cfg_type.h \
-  /home/honey/work/arm/s5p6818sdk_lzy1/Linux/src/uboot/board/s5p6818/x6818/include/cfg_gpio.h \
-  /home/honey/work/arm/s5p6818sdk_lzy1/Linux/src/uboot/board/s5p6818/x6818/include/cfg_main.h \
-  /home/honey/work/arm/s5p6818sdk_lzy1/Linux/src/uboot/board/s5p6818/x6818/include/cfg_mem.h \
-  /home/honey/work/arm/s5p6818sdk_lzy1/Linux/src/uboot/arch/arm/include/asm/arch-s5p6818/hardware.h \
-  /home/honey/work/arm/s5p6818sdk_lzy1/Linux/src/uboot/arch/arm/include/asm/arch-s5p6818/linux-types.h \
-  /home/honey/work/arm/s5p6818sdk_lzy1/Linux/src/uboot/arch/arm/include/asm/config.h \
+  /home/honey/2026workspace/uboot/S5p6818/arch/arm/cpu/slsiap/s5p6818/prototype/module/nx_ecid.h \
+  /home/honey/2026workspace/uboot/S5p6818/arch/arm/cpu/slsiap/s5p6818/prototype/module/nx_i2c.h \
+  /home/honey/2026workspace/uboot/S5p6818/arch/arm/cpu/slsiap/s5p6818/prototype/module/nx_i2s.h \
+  /home/honey/2026workspace/uboot/S5p6818/arch/arm/cpu/slsiap/s5p6818/prototype/module/nx_sdmmc.h \
+  /home/honey/2026workspace/uboot/S5p6818/arch/arm/cpu/slsiap/s5p6818/prototype/module/nx_ssp.h \
+  /home/honey/2026workspace/uboot/S5p6818/arch/arm/cpu/slsiap/s5p6818/prototype/module/nx_rtc.h \
+  /home/honey/2026workspace/uboot/S5p6818/arch/arm/cpu/slsiap/s5p6818/prototype/module/nx_mpegtsi.h \
+  /home/honey/2026workspace/uboot/S5p6818/arch/arm/cpu/slsiap/s5p6818/prototype/module/nx_vip.h \
+  /home/honey/2026workspace/uboot/S5p6818/board/s5p6818/common/cfg_type.h \
+  /home/honey/2026workspace/uboot/S5p6818/board/s5p6818/x6818/include/cfg_gpio.h \
+  /home/honey/2026workspace/uboot/S5p6818/board/s5p6818/x6818/include/cfg_main.h \
+  /home/honey/2026workspace/uboot/S5p6818/board/s5p6818/x6818/include/cfg_mem.h \
+  /home/honey/2026workspace/uboot/S5p6818/arch/arm/include/asm/arch-s5p6818/hardware.h \
+  /home/honey/2026workspace/uboot/S5p6818/arch/arm/include/asm/arch-s5p6818/linux-types.h \
+  /home/honey/2026workspace/uboot/S5p6818/arch/arm/include/asm/config.h \
     $(wildcard include/config/h/.h) \
     $(wildcard include/config/sys/generic/global/data.h) \
     $(wildcard include/config/lmb.h) \
@@ -482,27 +482,27 @@ deps_arch/arm/cpu/slsiap/common/usbid.o := \
   include/asm-offsets.h \
   include/generated/generic-asm-offsets.h \
   include/linux/bitops.h \
-  /home/honey/work/arm/s5p6818sdk_lzy1/Linux/src/uboot/arch/arm/include/asm/types.h \
-  /home/honey/work/arm/s5p6818sdk_lzy1/Linux/src/uboot/arch/arm/include/asm/bitops.h \
-  /home/honey/work/arm/s5p6818sdk_lzy1/Linux/src/uboot/arch/arm/include/asm/proc-armv/system.h \
+  /home/honey/2026workspace/uboot/S5p6818/arch/arm/include/asm/types.h \
+  /home/honey/2026workspace/uboot/S5p6818/arch/arm/include/asm/bitops.h \
+  /home/honey/2026workspace/uboot/S5p6818/arch/arm/include/asm/proc-armv/system.h \
     $(wildcard include/config/cpu/sa1100.h) \
     $(wildcard include/config/cpu/sa110.h) \
   include/linux/types.h \
     $(wildcard include/config/uid16.h) \
   include/linux/posix_types.h \
   include/linux/stddef.h \
-  /home/honey/work/arm/s5p6818sdk_lzy1/Linux/src/uboot/arch/arm/include/asm/posix_types.h \
-  /home/honey/work/arm/s5p6818sdk_lzy1/Linux/prebuilts/gcc/linux-x86/arm/arm-eabi-4.8/lib/gcc/arm-eabi/4.8/include/stdbool.h \
+  /home/honey/2026workspace/uboot/S5p6818/arch/arm/include/asm/posix_types.h \
+  /home/honey/2026workspace/uboot/S5p6818/prebuilts/gcc/linux-x86/arm/arm-eabi-4.8/lib/gcc/arm-eabi/4.8/include/stdbool.h \
   include/linux/string.h \
-  /home/honey/work/arm/s5p6818sdk_lzy1/Linux/src/uboot/arch/arm/include/asm/string.h \
+  /home/honey/2026workspace/uboot/S5p6818/arch/arm/include/asm/string.h \
     $(wildcard include/config/use/arch/memcpy.h) \
     $(wildcard include/config/use/arch/memset.h) \
   include/linux/linux_string.h \
   include/linux/stringify.h \
-  /home/honey/work/arm/s5p6818sdk_lzy1/Linux/src/uboot/arch/arm/include/asm/ptrace.h \
-  /home/honey/work/arm/s5p6818sdk_lzy1/Linux/src/uboot/arch/arm/include/asm/proc-armv/ptrace.h \
+  /home/honey/2026workspace/uboot/S5p6818/arch/arm/include/asm/ptrace.h \
+  /home/honey/2026workspace/uboot/S5p6818/arch/arm/include/asm/proc-armv/ptrace.h \
     $(wildcard include/config/arm/thumb.h) \
-  /home/honey/work/arm/s5p6818sdk_lzy1/Linux/prebuilts/gcc/linux-x86/arm/arm-eabi-4.8/lib/gcc/arm-eabi/4.8/include/stdarg.h \
+  /home/honey/2026workspace/uboot/S5p6818/prebuilts/gcc/linux-x86/arm/arm-eabi-4.8/lib/gcc/arm-eabi/4.8/include/stdarg.h \
   include/part.h \
     $(wildcard include/config/lba48.h) \
     $(wildcard include/config/mac/partition.h) \
@@ -541,8 +541,8 @@ deps_arch/arm/cpu/slsiap/common/usbid.o := \
     $(wildcard include/config/fit/best/match.h) \
     $(wildcard include/config/android/boot/image.h) \
   include/compiler.h \
-  /home/honey/work/arm/s5p6818sdk_lzy1/Linux/prebuilts/gcc/linux-x86/arm/arm-eabi-4.8/lib/gcc/arm-eabi/4.8/include/stddef.h \
-  /home/honey/work/arm/s5p6818sdk_lzy1/Linux/src/uboot/arch/arm/include/asm/byteorder.h \
+  /home/honey/2026workspace/uboot/S5p6818/prebuilts/gcc/linux-x86/arm/arm-eabi-4.8/lib/gcc/arm-eabi/4.8/include/stddef.h \
+  /home/honey/2026workspace/uboot/S5p6818/arch/arm/include/asm/byteorder.h \
   include/linux/byteorder/little_endian.h \
   include/linux/compiler.h \
     $(wildcard include/config/trace/branch/profiling.h) \
@@ -556,7 +556,7 @@ deps_arch/arm/cpu/slsiap/common/usbid.o := \
   include/linux/byteorder/swab.h \
   include/linux/byteorder/generic.h \
   include/lmb.h \
-  /home/honey/work/arm/s5p6818sdk_lzy1/Linux/src/uboot/arch/arm/include/asm/u-boot.h \
+  /home/honey/2026workspace/uboot/S5p6818/arch/arm/include/asm/u-boot.h \
   include/asm-generic/u-boot.h \
     $(wildcard include/config/e500.h) \
     $(wildcard include/config/cpm2.h) \
@@ -581,7 +581,7 @@ deps_arch/arm/cpu/slsiap/common/usbid.o := \
     $(wildcard include/config/cmd/portio.h) \
     $(wildcard include/config/needs/manual/reloc.h) \
   include/linker_lists.h \
-  /home/honey/work/arm/s5p6818sdk_lzy1/Linux/src/uboot/arch/arm/include/asm/global_data.h \
+  /home/honey/2026workspace/uboot/S5p6818/arch/arm/include/asm/global_data.h \
     $(wildcard include/config/omap.h) \
     $(wildcard include/config/fsl/esdhc.h) \
     $(wildcard include/config/at91family.h) \
@@ -597,7 +597,7 @@ deps_arch/arm/cpu/slsiap/common/usbid.o := \
     $(wildcard include/config/sys/i2c/mxc.h) \
   include/linux/list.h \
   include/linux/poison.h \
-  /home/honey/work/arm/s5p6818sdk_lzy1/Linux/src/uboot/arch/arm/include/asm/mach-types.h \
+  /home/honey/2026workspace/uboot/S5p6818/arch/arm/include/asm/mach-types.h \
     $(wildcard include/config/arch/ebsa110.h) \
     $(wildcard include/config/arch/rpc.h) \
     $(wildcard include/config/arch/ebsa285.h) \
@@ -1692,8 +1692,8 @@ deps_arch/arm/cpu/slsiap/common/usbid.o := \
     $(wildcard include/config/mach/omap5/sevm.h) \
     $(wildcard include/config/mach/armadillo800eva.h) \
     $(wildcard include/config/mach/kzm9g.h) \
-  /home/honey/work/arm/s5p6818sdk_lzy1/Linux/src/uboot/arch/arm/include/asm/setup.h \
-  /home/honey/work/arm/s5p6818sdk_lzy1/Linux/src/uboot/arch/arm/include/asm/u-boot-arm.h \
+  /home/honey/2026workspace/uboot/S5p6818/arch/arm/include/asm/setup.h \
+  /home/honey/2026workspace/uboot/S5p6818/arch/arm/include/asm/u-boot-arm.h \
   include/uuid.h \
   include/vsprintf.h \
     $(wildcard include/config/sys/vsnprintf.h) \
@@ -1703,14 +1703,14 @@ deps_arch/arm/cpu/slsiap/common/usbid.o := \
     $(wildcard include/config/mcast/tftp.h) \
     $(wildcard include/config/bootp/dns2.h) \
     $(wildcard include/config/netconsole.h) \
-  /home/honey/work/arm/s5p6818sdk_lzy1/Linux/src/uboot/arch/arm/include/asm/cache.h \
+  /home/honey/2026workspace/uboot/S5p6818/arch/arm/include/asm/cache.h \
     $(wildcard include/config/sys/cacheline/size.h) \
-  /home/honey/work/arm/s5p6818sdk_lzy1/Linux/src/uboot/arch/arm/include/asm/system.h \
+  /home/honey/2026workspace/uboot/S5p6818/arch/arm/include/asm/system.h \
   include/bootstage.h \
     $(wildcard include/config/bootstage/user/count.h) \
     $(wildcard include/config/bootstage.h) \
     $(wildcard include/config/show/boot/progress.h) \
-  /home/honey/work/arm/s5p6818sdk_lzy1/Linux/src/uboot/arch/arm/cpu/slsiap/s5p6818/prototype/base/nx_chip.h \
+  /home/honey/2026workspace/uboot/S5p6818/arch/arm/cpu/slsiap/s5p6818/prototype/base/nx_chip.h \
   arch/arm/cpu/slsiap/common/usbid.h \
 
 arch/arm/cpu/slsiap/common/usbid.o: $(deps_arch/arm/cpu/slsiap/common/usbid.o)

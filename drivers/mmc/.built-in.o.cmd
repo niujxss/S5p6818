@@ -1,1 +1,1 @@
-cmd_drivers/mmc/built-in.o :=  /home/honey/work/arm/s5p6818sdk_lzy1/Linux/prebuilts/gcc/linux-x86/arm/arm-eabi-4.8/bin/arm-eabi-ld.bfd     -r -o drivers/mmc/built-in.o drivers/mmc/mmc.o drivers/mmc/dw_mmc.o drivers/mmc/mmc_write.o 
+cmd_drivers/mmc/built-in.o :=  /home/honey/2026workspace/uboot/S5p6818/prebuilts/gcc/linux-x86/arm/arm-eabi-4.8/bin/arm-eabi-ld.bfd     -r -o drivers/mmc/built-in.o drivers/mmc/mmc.o drivers/mmc/dw_mmc.o drivers/mmc/mmc_write.o 

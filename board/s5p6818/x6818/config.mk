@@ -24,7 +24,11 @@
 # =========================================================================
 #	Cross compiler
 # =========================================================================
-CROSS_COMPILE := /home/honey/work/arm/s5p6818sdk_lzy1/Linux/prebuilts/gcc/linux-x86/arm/arm-eabi-4.8/bin/arm-eabi-
+# 树内自带工具链（相对树根，整树可整体搬移）
+# 如需用外部工具链，构建时传 CROSS_COMPILE=/path/xx- 覆盖即可
+ifeq ($(origin CROSS_COMPILE),undefined)
+CROSS_COMPILE := $(srctree)/prebuilts/gcc/linux-x86/arm/arm-eabi-4.8/bin/arm-eabi-
+endif
 
 # prevent GCC-4.6.x (arm-linux-gnueabi-gcc) warning
 CC = $(CROSS_COMPILE)gcc

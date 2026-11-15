@@ -14,20 +14,20 @@
 @	compiled by GNU C version 4.6.x-google 20120106 (prerelease), GMP version 5.0.5, MPFR version 3.1.1, MPC version 1.0.1
 @ GGC heuristics: --param ggc-min-expand=100 --param ggc-min-heapsize=131072
 @ options passed:  -nostdinc -I include
-@ -I /home/honey/work/arm/s5p6818sdk_lzy1/Linux/src/uboot/arch/arm/include
-@ -I /home/honey/work/arm/s5p6818sdk_lzy1/Linux/src/uboot/arch/arm/cpu/slsiap/s5p6818/prototype/module
-@ -I /home/honey/work/arm/s5p6818sdk_lzy1/Linux/src/uboot/arch/arm/cpu/slsiap/s5p6818/prototype/base
-@ -I /home/honey/work/arm/s5p6818sdk_lzy1/Linux/src/uboot/arch/arm/include/asm/arch-s5p6818
-@ -I /home/honey/work/arm/s5p6818sdk_lzy1/Linux/src/uboot/arch/arm/cpu/slsiap/common
-@ -I /home/honey/work/arm/s5p6818sdk_lzy1/Linux/src/uboot/arch/arm/cpu/slsiap/devices
-@ -I /home/honey/work/arm/s5p6818sdk_lzy1/Linux/src/uboot/board/s5p6818/common
-@ -I /home/honey/work/arm/s5p6818sdk_lzy1/Linux/src/uboot/board/s5p6818/x6818/include
-@ -iprefix /home/honey/work/arm/s5p6818sdk_lzy1/Linux/prebuilts/gcc/linux-x86/arm/arm-eabi-4.8/bin/../lib/gcc/arm-eabi/4.8/
+@ -I /home/honey/2026workspace/uboot/S5p6818/arch/arm/include
+@ -I /home/honey/2026workspace/uboot/S5p6818/arch/arm/cpu/slsiap/s5p6818/prototype/module
+@ -I /home/honey/2026workspace/uboot/S5p6818/arch/arm/cpu/slsiap/s5p6818/prototype/base
+@ -I /home/honey/2026workspace/uboot/S5p6818/arch/arm/include/asm/arch-s5p6818
+@ -I /home/honey/2026workspace/uboot/S5p6818/arch/arm/cpu/slsiap/common
+@ -I /home/honey/2026workspace/uboot/S5p6818/arch/arm/cpu/slsiap/devices
+@ -I /home/honey/2026workspace/uboot/S5p6818/board/s5p6818/common
+@ -I /home/honey/2026workspace/uboot/S5p6818/board/s5p6818/x6818/include
+@ -iprefix /home/honey/2026workspace/uboot/S5p6818/prebuilts/gcc/linux-x86/arm/arm-eabi-4.8/bin/../lib/gcc/arm-eabi/4.8/
 @ -D__USES_INITFINI__ -D __KERNEL__ -D CONFIG_SYS_TEXT_BASE=0x43C00000
 @ -D CONFIG_ARM -D __ARM__ -D __LINUX__ -D NX_RELEASE -D DO_DEPS_ONLY
 @ -D KBUILD_STR(s)=#s -D KBUILD_BASENAME=KBUILD_STR(asm_offsets)
 @ -D KBUILD_MODNAME=KBUILD_STR(asm_offsets)
-@ -isystem /home/honey/work/arm/s5p6818sdk_lzy1/Linux/prebuilts/gcc/linux-x86/arm/arm-eabi-4.8/bin/../lib/gcc/arm-eabi/4.8/include
+@ -isystem /home/honey/2026workspace/uboot/S5p6818/prebuilts/gcc/linux-x86/arm/arm-eabi-4.8/bin/../lib/gcc/arm-eabi/4.8/include
 @ -MD lib/.asm-offsets.s.d lib/asm-offsets.c -marm -mno-thumb-interwork
 @ -mabi=aapcs-linux -mword-relocations -mfloat-abi=soft
 @ -mno-unaligned-access -mcpu=cortex-a9 -mfpu=vfp
@@ -132,7 +132,7 @@ main:
 	.size	main, .-main
 	.text
 .Letext0:
-	.file 2 "/home/honey/work/arm/s5p6818sdk_lzy1/Linux/src/uboot/arch/arm/include/asm/types.h"
+	.file 2 "/home/honey/2026workspace/uboot/S5p6818/arch/arm/include/asm/types.h"
 	.file 3 "include/linux/types.h"
 	.file 4 "include/asm-generic/u-boot.h"
 	.file 5 "include/net.h"
@@ -856,9 +856,6 @@ main:
 	.ascii	"long long unsigned int\000"
 .LASF1:
 	.ascii	"long unsigned int\000"
-.LASF57:
-	.ascii	"/home/honey/work/arm/s5p6818sdk_lzy1/Linux/src/uboo"
-	.ascii	"t\000"
 .LASF2:
 	.ascii	"short unsigned int\000"
 .LASF18:
@@ -873,6 +870,8 @@ main:
 	.ascii	"main\000"
 .LASF20:
 	.ascii	"bi_sramstart\000"
+.LASF57:
+	.ascii	"/home/honey/2026workspace/uboot/S5p6818\000"
 .LASF12:
 	.ascii	"ulong\000"
 .LASF30:

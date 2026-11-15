@@ -1,11 +1,11 @@
-cmd_tools/pblimage.o := gcc -Wp,-MD,tools/.pblimage.o.d -Wall -Wstrict-prototypes -O2 -fomit-frame-pointer   -include /home/honey/work/arm/s5p6818sdk_lzy1/Linux/src/uboot/include/libfdt_env.h -idirafterinclude -idirafter/home/honey/work/arm/s5p6818sdk_lzy1/Linux/src/uboot/arch/arm/include -I/home/honey/work/arm/s5p6818sdk_lzy1/Linux/src/uboot/lib/libfdt -I/home/honey/work/arm/s5p6818sdk_lzy1/Linux/src/uboot/tools -DCONFIG_SYS_TEXT_BASE=0x43C00000 -DUSE_HOSTCC -D__KERNEL_STRICT_NAMES -D_GNU_SOURCE  -c -o tools/pblimage.o tools/pblimage.c
+cmd_tools/pblimage.o := gcc -Wp,-MD,tools/.pblimage.o.d -Wall -Wstrict-prototypes -O2 -fomit-frame-pointer   -include /home/honey/2026workspace/uboot/S5p6818/include/libfdt_env.h -idirafterinclude -idirafter/home/honey/2026workspace/uboot/S5p6818/arch/arm/include -I/home/honey/2026workspace/uboot/S5p6818/lib/libfdt -I/home/honey/2026workspace/uboot/S5p6818/tools -DCONFIG_SYS_TEXT_BASE=0x43C00000 -DUSE_HOSTCC -D__KERNEL_STRICT_NAMES -D_GNU_SOURCE  -c -o tools/pblimage.o tools/pblimage.c
 
 source_tools/pblimage.o := tools/pblimage.c
 
 deps_tools/pblimage.o := \
   /usr/include/stdc-predef.h \
-  /home/honey/work/arm/s5p6818sdk_lzy1/Linux/src/uboot/include/libfdt_env.h \
-  /home/honey/work/arm/s5p6818sdk_lzy1/Linux/src/uboot/include/compiler.h \
+  /home/honey/2026workspace/uboot/S5p6818/include/libfdt_env.h \
+  /home/honey/2026workspace/uboot/S5p6818/include/compiler.h \
   /usr/lib/gcc/x86_64-linux-gnu/9/include/stddef.h \
   /usr/lib/gcc/x86_64-linux-gnu/9/include/stdint.h \
   /usr/include/stdint.h \
@@ -93,7 +93,7 @@ deps_tools/pblimage.o := \
   /usr/include/x86_64-linux-gnu/bits/stat.h \
   /usr/include/x86_64-linux-gnu/bits/fcntl2.h \
   /usr/include/byteswap.h \
-  /home/honey/work/arm/s5p6818sdk_lzy1/Linux/src/uboot/include/linux/types.h \
+  /home/honey/2026workspace/uboot/S5p6818/include/linux/types.h \
     $(wildcard include/config/uid16.h) \
   /usr/include/linux/posix_types.h \
   /usr/include/linux/stddef.h \

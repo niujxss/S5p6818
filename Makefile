@@ -200,7 +200,11 @@ ifeq ($(HOSTARCH),$(ARCH))
 CROSS_COMPILE ?=
 endif
 
-CROSS_COMPILE=/home/honey/work/arm/s5p6818sdk_lzy1/Linux/prebuilts/gcc/linux-x86/arm/arm-eabi-4.8/bin/arm-eabi-
+# 树内自带工具链（相对树根，整树可整体搬移）
+# 如需用外部工具链，构建时传 CROSS_COMPILE=/path/xx- 覆盖即可
+ifeq ($(origin CROSS_COMPILE),undefined)
+CROSS_COMPILE := $(srctree)/prebuilts/gcc/linux-x86/arm/arm-eabi-4.8/bin/arm-eabi-
+endif
 
 # SHELL used by kbuild
 CONFIG_SHELL := $(shell if [ -x "$$BASH" ]; then echo $$BASH; \
