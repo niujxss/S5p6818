@@ -491,7 +491,7 @@ ifeq ($(dot-config),1)
 include $(srctree)/config.mk
 
 ifeq ($(wildcard include/config.mk),)
-$(error "System not configured - see README")
+$(error 未配置：请先执行 "make x6818_config" 再 make，或直接运行 "./build.sh"。详情见 README-local.md)
 endif
 
 # If board code explicitly specified LDSCRIPT or CONFIG_SYS_LDSCRIPT, use
