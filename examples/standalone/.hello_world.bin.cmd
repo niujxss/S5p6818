@@ -1,0 +1,1 @@
+cmd_examples/standalone/hello_world.bin := /home/honey/work/arm/s5p6818sdk_lzy1/Linux/prebuilts/gcc/linux-x86/arm/arm-eabi-4.8/bin/arm-eabi-objcopy -O binary  examples/standalone/hello_world examples/standalone/hello_world.bin

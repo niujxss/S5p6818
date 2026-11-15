@@ -1,0 +1,9 @@
+board.c:64:13:bd_gpio_init	672	static
+board.c:223:6:bd_display_run	24	static
+eth.c:41:6:nxpmac_init	8	static
+eth.c:86:5:board_phy_config	8	static
+eth.c:94:5:x6818_board_eth_init	8	static
+board.c:190:5:board_early_init_f	48	static
+board.c:203:5:board_init	0	static
+board.c:210:5:power_init_board	0	static
+board.c:284:5:board_late_init	24	static

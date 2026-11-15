@@ -1,0 +1,4 @@
+s5p6818.c:104:6:nxp_cpu_periph_init	0	static
+s5p6818.c:108:6:nxp_cpu_arch_init	48	static
+s5p6818.c:114:14:nxp_cpu_version	0	static
+s5p6818.c:119:6:nxp_print_cpu_info	0	static

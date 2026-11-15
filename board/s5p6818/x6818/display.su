@@ -1,0 +1,2 @@
+display.c:122:12:MIPI_LCD_INIT	96	static
+display.c:201:5:bd_display	336	static

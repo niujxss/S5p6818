@@ -1,0 +1,3 @@
+rtc_nxp.c:34:6:nxp_rtc_init	8	static
+rtc_nxp.c:45:5:nxp_rtc_get	0	static
+rtc_nxp.c:56:6:nxp_rtc_reset	8	static

@@ -1,0 +1,15 @@
+clock.c:367:21:pll_get_div	0	static
+clock.c:454:22:core_get_rate	8	static
+clock.c:341:21:3	24	static
+clock.c:490:6:core_rate_init	24	static
+clock.c:536:6:clk_put	0	static
+clock.c:540:13:clk_get	24	static
+clock.c:527:13:clk_get_sys	8	static
+clock.c:574:6:clk_round_rate	80	static
+clock.c:667:15:clk_get_rate	0	static
+clock.c:677:5:clk_set_rate	16	static
+clock.c:710:5:clk_enable	12	static
+clock.c:764:6:clk_disable	0	static
+clock.c:814:14:nxp_cpu_clock_hz	0	static
+clock.c:819:13:nxp_cpu_clock_init	24	static
+clock.c:872:6:nxp_cpu_clock_print	48	static

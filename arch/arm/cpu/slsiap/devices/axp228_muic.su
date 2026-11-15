@@ -1,0 +1,2 @@
+axp228_muic.c:37:12:axp228_muic_chrg_get_type	24	static
+axp228_muic.c:85:5:power_muic_init	8	static

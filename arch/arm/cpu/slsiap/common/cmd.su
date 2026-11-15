@@ -1,0 +1,2 @@
+cmd.c:176:5:do_goImage	24	static
+cmd.c:247:5:do_new_cmd	24	static

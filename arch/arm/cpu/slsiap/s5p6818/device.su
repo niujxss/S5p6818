@@ -1,0 +1,2 @@
+device.c:33:6:serial_device_init	8	static
+device.c:128:5:i2c_gpio_init	8	static

@@ -1,0 +1,11 @@
+serial_s5p.c:64:13:1	8	static
+serial_s5p.c:179:13:s5p_serial_setbrg	0	static
+serial_s5p.c:180:12:s5p_serial_getc	0	static
+serial_s5p.c:181:12:s5p_serial_tstc	0	static
+serial_s5p.c:146:13:5	0	static
+serial_s5p.c:183:13:s5p_serial_puts	8	static
+serial_s5p.c:182:13:s5p_serial_putc	0	static
+serial_s5p.c:28:13:__serial_device_init	0	static
+serial_s5p.c:178:12:s5p_serial_init	8	static
+serial_s5p.c:196:30:default_serial_console	0	static
+serial_s5p.c:201:6:s5p_serial_initialize	0	static

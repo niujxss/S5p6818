@@ -1,0 +1,5 @@
+axp228_pmic.c:83:12:axp228_charger_state	0	static
+axp228_pmic.c:91:12:axp228_charger_bat_present	16	static
+axp228_pmic.c:33:6:axp228_usb_limit_set	24	static
+axp228_pmic.c:111:12:axp228_chrg_get_type	24	static
+axp228_pmic.c:161:5:power_pmic_init	8	static

@@ -1,0 +1,4 @@
+axp228_fg.c:32:12:axp228_power_check_ibatt	32	static
+axp228_fg.c:69:12:axp228_power_update_battery	24	static
+axp228_fg.c:103:12:axp228_power_check_battery	32	static
+axp228_fg.c:156:5:power_fg_init	8	static

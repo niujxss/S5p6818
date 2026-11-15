@@ -1,0 +1,10 @@
+cmd_draw_logo.c:116:1:PutPixel555To565	0	static
+cmd_draw_logo.c:144:1:PutPixel565To888	8	static
+cmd_draw_logo.c:159:1:PutPixel565To8888	8	static
+cmd_draw_logo.c:177:1:PutPixel888To565	0	static
+cmd_draw_logo.c:190:1:PutPixel888To888	8	static
+cmd_draw_logo.c:206:1:PutPixel888To8888	0	static
+cmd_draw_logo.c:234:14:logo_get_logo_bmp_addr	0	static
+cmd_draw_logo.c:239:6:lcd_set_logo_bmp_addr	0	static
+cmd_draw_logo.c:247:6:lcd_draw_boot_logo	168	static
+cmd_draw_logo.c:546:5:do_drawbmp	8	static

@@ -1,0 +1,1 @@
+cmd_net/built-in.o :=  /home/honey/work/arm/s5p6818sdk_lzy1/Linux/prebuilts/gcc/linux-x86/arm/arm-eabi-4.8/bin/arm-eabi-ld.bfd     -r -o net/built-in.o net/arp.o net/bootp.o net/eth.o net/net.o net/ping.o net/tftp.o 
