@@ -1,0 +1,387 @@
+// SPDX-License-Identifier: GPL-2.0
+/*
+ * Jiuding (九鼎创展) X6818 development board - mainline DT.
+ *
+ * Hardware, as identified from the physical board and the vendor BSP:
+ *   core board : X4418CV3.4, 2017-01-26
+ *                - S5P6818 SoC
+ *                - 2x K4B4G1646D DDR3  -> 1 GiB
+ *                - eMMC on SDMMC2 (KLM8G1GEME-B041, 8 GB, 4-bit)
+ *                - AXP228 PMIC behind a bit-banged I2C on GPIOC15/16
+ *   base board : X6818BV3, 2017-03-06
+ *                - GL850G USB 2.0 hub -> 3x USB-A (silkscreen HUB1..HUB3)
+ *                - ALC5621 audio codec on I2C0 @0x1a
+ *                - RTL8211E GbE PHY @ MDIO 4, reset on GPIOE-22
+ *                - SD0 (SDMMC0) and SD1 (SDMMC1) card slots
+ *                - OTG port with SY6280 load switch, EN = GPIOC28
+ *
+ * Evidence used:
+ *   - hardware/x4418cv3/X4418CV3_RELEASE20150713.pdf   (core board schematic)
+ *   - hardware/x6818bv3/x6818bv3.pdf                   (base board schematic)
+ *   - u-boot board/s5p6818/x6818/{board.c,eth.c}, include/configs/x6818.h,
+ *     board/.../include/{cfg_main.h,cfg_gpio.h}
+ *   - vendor 3.4 kernel arch/arm/plat-s5p6818/x6818/{device.c,usb-connector.c},
+ *     include/{cfg_main.h,cfg_gpio.h,axp22-cfg.h}
+ *   - mainline template arch/arm64/boot/dts/nexell/s5p6818-nanopi3-common.dtsi
+ *
+ * Confirmed live on the board through the u-boot console:
+ *   bdinfo        -> DRAM 1 GiB at 0x40000000
+ *   mmc info      -> eMMC 7.3 GiB, MMC 4.0, "Bus Width: 4-bit"
+ *   i2c dev/probe -> current bus 3, single device 0x34
+ *   i2c md 34 3 1 -> 0x06 (AXP228 IC_TYPE, same value as AXP221)
+ *   printenv      -> bootargs root=/dev/mmcblk1p1 (eMMC is mmcblk1)
+ *
+ * Key facts that differ from the NanoPi M3 template:
+ *   - PMIC is an AXP228 on a GPIO bit-banged I2C, not absent
+ *   - codec is ALC5621 on I2C0 @0x1a (NanoPi: ES8316 @0x11)
+ *   - SDMMC1 drives a second SD slot, NOT SDIO WiFi
+ *   - RTL8211E sits at MDIO address 4 (NanoPi: 7)
+ *   - a GL850G hub fans one SoC host port out to 3 ports, but it has no
+ *     controllable reset/enable pin, so it is not described here
+ */
+
+/dts-v1/;
+
+#include "s5p6818.dtsi"
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/interrupt-controller/irq.h>
+
+/ {
+	model = "Jiuding X6818 (S5P6818, X6818BV3 base + X4418CV3.4 core)";
+	compatible = "jiuding,x6818bv3", "jiuding,x6818", "nexell,s5p6818";
+
+	aliases {
+		serial0 = &uart0;
+		/*
+		 * Natural 0:1:2 order, which is what the rest of this family
+		 * assumes (Armbian's boot script defaults to root=/dev/mmcblk2p1
+		 * for the on-board eMMC):
+		 *   SD0 -> mmcblk0, SD1 -> mmcblk1, eMMC -> mmcblk2
+		 */
+		mmc0 = &mmc0;
+		mmc1 = &mmc1;
+		mmc2 = &mmc2;
+	};
+
+	chosen {
+		stdout-path = "serial0:115200n8";
+	};
+
+	/*
+	 * Fallback only: u-boot patches the real size in before booting.
+	 * Measured on this board: bdinfo reports DRAM 0x40000000 + 0x40000000
+	 * = 1 GiB, matching the two K4B4G1646D (512 MiB each) on the core board.
+	 */
+	memory@40000000 {
+		device_type = "memory";
+		reg = <0x0 0x40000000 0x0 0x40000000>;
+	};
+
+	/*
+	 * PMIC bus.
+	 *
+	 * The core board does not wire the AXP228 to one of the three SoC I2C
+	 * controllers. It bit-bangs the bus on two plain pins instead:
+	 *   SCL = GPIOC15   SDA = GPIOC16   ~100 kHz
+	 * (u-boot: CONFIG_I2C_GPIO_MODE + CFG_IO_I2C3_{SCL,SDA};
+	 *  3.4 kernel: "i2c-gpio" adapter id 3, CFG_I2C3_CLK.)
+	 *
+	 * Both pads are push-pull only, but the board has external pull-ups
+	 * and neither side ever drives the line high, so open-drain emulation
+	 * is not required.
+	 */
+	i2c_pmic: i2c-pmic {
+		compatible = "i2c-gpio";
+		#address-cells = <1>;
+		#size-cells = <0>;
+		scl-gpios = <&gpio_c 15 GPIO_ACTIVE_HIGH>;
+		sda-gpios = <&gpio_c 16 GPIO_ACTIVE_HIGH>;
+		i2c-gpio,delay-us = <5>;	/* ~100 kHz */
+		i2c-gpio,timeout-ms = <100>;
+		status = "okay";
+
+		/*
+		 * AXP228 PMIC, 7-bit address 0x34 (0x68 >> 1).
+		 *
+		 *   IRQ  : ALIVE GPIO 4, falling edge
+		 *          (CFG_GPIO_PMIC_INTR, PWR_DECT_FALLINGEDGE)
+		 *   VBUS : ALIVE GPIO 2 reads the PMIC's GPIO0
+		 *          (CFG_GPIO_PMIC_VUSB_DET)
+		 *   CHG  : ALIVE GPIO 3 is the charger status input
+		 *          (MCU_CHG_DET in the schematic)
+		 *
+		 * vendor rail map (axp22-cfg.h):
+		 *   DCDC1 3.3 V sys   DCDC2 1.3 V arm    DCDC3 1.2 V core
+		 *   DCDC4 1.6 V sys   DCDC5 1.6 V ddr    DC5LDO 1.2 V cvbs
+		 *   ALDO1 3.3 V alive ALDO2 1.8 V alive  ALDO3 1.0 V alive
+		 *   DLDO1 3.3 V wide  DLDO2 1.8 V cam
+		 *   ELDO1 1.8 V sys   ELDO2 3.3 V wifi   ELDO3 unused
+		 *
+		 * mainline drivers/mfd/axp20x.c has no AXP228 entry upstream, so
+		 * this tree carries a local patch (0032-mfd-axp20x-add-AXP228)
+		 * that registers "x-powers,axp228" and maps it onto the AXP221
+		 * variant: the chip is register-compatible (DCDC1-5, DC5LDO,
+		 * ALDO1-3, DLDO1-4, ELDO1-3 - the same set axp22x_regulators[]
+		 * already describes) and answers IC_TYPE with 0x06, which is
+		 * exactly AXP221_CHIP_VERSION. The second compatible is a safety
+		 * net for trees built without that patch.
+		 *
+		 * Read live over u-boot's I2C bus 3:  i2c md 34 3 1  ->  0003: 06
+		 */
+		pmic: pmic@34 {
+			compatible = "x-powers,axp228", "x-powers,axp221";
+			reg = <0x34>;
+			interrupt-parent = <&alive_0>;
+			interrupts = <4 IRQ_TYPE_EDGE_FALLING>;
+			interrupt-controller;
+			#interrupt-cells = <1>;
+			status = "okay";
+		};
+	};
+
+	/*
+	 * Analog audio: SoC I2S0 (master) -> ALC5621 on I2C0.
+	 *
+	 * The vendor machine driver is "ASOC-alc5623" with codec_name
+	 * "alc562x-codec.0-001a" and codec_dai "alc5621-hifi"; mainline's
+	 * sound/soc/codecs/alc5623.c covers ALC5621/5622/5623 through the
+	 * same code, so the link is modelled with simple-audio-card.
+	 * MCLK (12.288 MHz at 48 kHz, mclk-fs = 256) is driven by I2S0 on
+	 * GPIOD13.
+	 */
+	sound {
+		compatible = "simple-audio-card";
+		simple-audio-card,name = "x6818-alc5621";
+		simple-audio-card,format = "i2s";
+		simple-audio-card,mclk-fs = <256>;
+		simple-audio-card,bitclock-master = <&snd_cpu>;
+		simple-audio-card,frame-master = <&snd_cpu>;
+
+		snd_cpu: simple-audio-card,cpu {
+			sound-dai = <&i2s0 0>;
+		};
+
+		simple-audio-card,codec {
+			sound-dai = <&alc5621>;
+		};
+	};
+
+	/*
+	 * USB.
+	 *
+	 * The base board carries a GL850G hub: its upstream port is wired to
+	 * the SoC USB2.0 HOST pair and it fans out to three USB-A jacks
+	 * (silkscreen HUB1..HUB3). The vendor kernel confirms this with
+	 * "#define USB_HOST_HUB (1)" in x6818/usb-connector.c.
+	 *
+	 * The hub still needs no DT node: its REST# is an RC power-on reset
+	 * off V33_HUB, PWREN1/2 and OVCUR1#/2# are tied by resistors, and each
+	 * downstream port takes VBUS straight from VBAT_USB. There is no GPIO
+	 * to model, and the EHCI/OHCI root hub enumerates it at runtime.
+	 *
+	 * The OTG port is the only software-controlled one: a SY6280AAC load
+	 * switch with EN on GPIOC28 (CFG_GPIO_OTG_VBUS_DET).
+	 */
+
+	/*
+	 * The template's SDIO-WiFi power sequencer only exists for the NanoPi
+	 * combo module and is now referenced by nothing, so drop it rather than
+	 * leave a stray mmc-pwrseq-simple node holding GPIOB24.
+	 */
+	/delete-node/ wifi-pwrseq;
+};
+
+/* Debug console on UART0, 115200 8N1 (CFG_UART_DEBUG_CH = 0, RS232 level). */
+&uart0 {
+	status = "okay";
+};
+
+/* ------------------------------------------------------------------ */
+/* SD / eMMC                                                          */
+/* ------------------------------------------------------------------ */
+
+/*
+ * SD0 slot on SDMMC0 (GPIOA29 CLK, GPIOA31 CMD, GPIOB1/3/5/7 DAT0-3).
+ * Card detect is ALIVE GPIO1 (CFG_SDMMC0_DETECT_IO = PAD_GPIO_ALV + 1),
+ * shorted to ground by the socket switch -> active low.
+ */
+&mmc0 {
+	status = "okay";
+	bus-width = <4>;
+	cd-gpios = <&alive_0 1 GPIO_ACTIVE_LOW>;
+	disable-wp;
+	pinctrl-names = "default";
+	pinctrl-0 = <&sdmmc0_cclk &sdmmc0_cmd &sdmmc0_bus4>;
+	/delete-property/ broken-cd;
+};
+
+/*
+ * SD1 slot on SDMMC1 (GPIOD22 CLK, GPIOD23 CMD, GPIOD24-27 DAT0-3).
+ * Card detect is GPIOB25 (CFG_SDMMC1_DETECT_IO = PAD_GPIO_B + 25).
+ *
+ * The template describes SDMMC1 as the NanoPi's non-removable SDIO WiFi
+ * (Broadcom combo with a pwrseq and a wifi@1 child). None of that applies
+ * here: this is an ordinary removable card slot, so those properties and
+ * the child node are dropped.
+ */
+&mmc1 {
+	status = "okay";
+	bus-width = <4>;
+	cap-sd-highspeed;
+	cd-gpios = <&gpio_b 25 GPIO_ACTIVE_LOW>;
+	disable-wp;
+	/delete-property/ non-removable;
+	/delete-property/ mmc-pwrseq;
+	/delete-property/ cap-sdio-irq;
+	/delete-property/ keep-power-in-suspend;
+	/* No child devices left, so these only trigger a dtc warning. */
+	/delete-property/ #address-cells;
+	/delete-property/ #size-cells;
+	/delete-node/ wifi@1;
+};
+
+/*
+ * On-board eMMC on SDMMC2 (GPIOC18 CLK, GPIOC19 CMD, GPIOC20-23 DAT0-3),
+ * and it is the boot device (CONFIG_SYS_MMC_BOOT_DEV = 2).
+ *
+ * 4-bit it is: u-boot sets CONFIG_MMC2_BUS_WIDTH 4 and the vendor kernel
+ * advertises MMC_CAP_4_BIT_DATA only; the schematic wires MCU_SD2_D0..D3
+ * and nothing else. The SDMMC2_CDATA[4..7] alternative on GPIOE21-24 that
+ * cfg_gpio.h mentions is therefore unused - which is why GPIOE22 can serve
+ * as the Ethernet PHY reset below.
+ */
+&mmc2 {
+	status = "okay";
+	bus-width = <4>;
+	non-removable;
+	disable-wp;
+	pinctrl-names = "default";
+	pinctrl-0 = <&sdmmc2_cclk &sdmmc2_cmd &sdmmc2_bus4>;
+};
+
+/* ------------------------------------------------------------------ */
+/* Audio                                                              */
+/* ------------------------------------------------------------------ */
+
+/*
+ * Only three I2C controllers exist on the SoC. I2C0 carries the codec;
+ * I2C1 (HDMI DDC) and I2C2 are not used on this board.
+ */
+&i2c_0 {
+	status = "okay";
+
+	alc5621: audio-codec@1a {
+		compatible = "realtek,alc5621";
+		reg = <0x1a>;
+		#sound-dai-cells = <0>;
+	};
+};
+
+&i2s0 {
+	status = "okay";
+};
+
+/* ------------------------------------------------------------------ */
+/* Ethernet                                                           */
+/* ------------------------------------------------------------------ */
+
+/*
+ * GbE: DesignWare GMAC (RGMII, 125 MHz from EXT1) + RTL8211E at MDIO
+ * address 4 (u-boot CONFIG_PHY_ADDR 4 / CONFIG_ETHPRIME "RTL8211").
+ * Reset is GPIOE-22, active low; u-boot drives it 1 -> 0 -> 1
+ * (eth.c: gpio_set_value(...,1); (...,0); (...,1)).
+ *
+ * If the PHY is ever not found at 4, the NanoPi reference board uses 7 -
+ * flip the reg below and the phy-handle before suspecting anything else.
+ */
+&gmac0 {
+	status = "okay";
+	phy-handle = <&rtl8211>;
+	snps,reset-gpio = <&gpio_e 22 GPIO_ACTIVE_LOW>;
+	snps,reset-active-low;
+	snps,reset-delays-us = <0 10000 30000>;
+};
+
+&mdio0 {
+	rtl8211: ethernet-phy@4 {
+		reg = <4>;
+	};
+};
+
+/* ------------------------------------------------------------------ */
+/* USB                                                                */
+/* ------------------------------------------------------------------ */
+
+&usb2_phy {
+	status = "okay";
+};
+
+&ehci {
+	status = "okay";
+};
+
+&ohci {
+	status = "okay";
+};
+
+/* OTG port behind the SY6280 load switch (EN = GPIOC28). */
+&dwc2 {
+	status = "okay";
+	dr_mode = "otg";
+};
+
+/* ------------------------------------------------------------------ */
+/* Pin groups the template does not define                            */
+/* ------------------------------------------------------------------ */
+
+/*
+ * The template only provides SDMMC1's pin groups. eMMC and SD0 used to
+ * rely on whatever u-boot left muxed, which breaks as soon as the boot
+ * loader changes (e.g. moving to mainline u-boot). Function numbers come
+ * from the vendor cfg_gpio.h pad table.
+ */
+&pinctrl_0 {
+	/* Pin group nodes carry no reg, so drop the unused address cells. */
+	/delete-property/ #address-cells;
+	/delete-property/ #size-cells;
+
+	/* SDMMC0: bank A/B, function 1 */
+	sdmmc0_cclk: sdmmc0-cclk {
+		nexell,pins = "gpioa-29";
+		nexell,pin-function = <1>;
+		nexell,pin-pull = <2>;
+		nexell,pin-strength = <2>;
+	};
+	sdmmc0_cmd: sdmmc0-cmd {
+		nexell,pins = "gpioa-31";
+		nexell,pin-function = <1>;
+		nexell,pin-pull = <2>;
+		nexell,pin-strength = <1>;
+	};
+	sdmmc0_bus4: sdmmc0-bus4 {
+		nexell,pins = "gpiob-1", "gpiob-3", "gpiob-5", "gpiob-7";
+		nexell,pin-function = <1>;
+		nexell,pin-pull = <2>;
+		nexell,pin-strength = <1>;
+	};
+
+	/* SDMMC2 (eMMC): bank C, function 2 */
+	sdmmc2_cclk: sdmmc2-cclk {
+		nexell,pins = "gpioc-18";
+		nexell,pin-function = <2>;
+		nexell,pin-pull = <2>;
+		nexell,pin-strength = <2>;
+	};
+	sdmmc2_cmd: sdmmc2-cmd {
+		nexell,pins = "gpioc-19";
+		nexell,pin-function = <2>;
+		nexell,pin-pull = <2>;
+		nexell,pin-strength = <1>;
+	};
+	sdmmc2_bus4: sdmmc2-bus4 {
+		nexell,pins = "gpioc-20", "gpioc-21", "gpioc-22", "gpioc-23";
+		nexell,pin-function = <2>;
+		nexell,pin-pull = <2>;
+		nexell,pin-strength = <1>;
+	};
+};

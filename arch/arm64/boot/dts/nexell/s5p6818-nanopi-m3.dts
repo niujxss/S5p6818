@@ -1,0 +1,68 @@
+// SPDX-License-Identifier: GPL-2.0
+/*
+ * FriendlyElec NanoPi M3 / NanoPC-T3 / NanoPC-T3+ (octa-core S5P6818).
+ * The full-featured boards: on-board eMMC, SDIO WiFi + Bluetooth (AP6212 /
+ * BCM43430) and an ES8316 analog audio codec on the 3.5 mm jack, on top of the
+ * peripherals shared by the whole family (see s5p6818-nanopi3-common.dtsi).
+ * The 2 GiB T3+ uses this same tree; u-boot fills in the real RAM size.
+ */
+
+/dts-v1/;
+#include "s5p6818-nanopi3-common.dtsi"
+
+/ {
+	model = "FriendlyElec NanoPi M3 / NanoPC-T3 / NanoPC-T3+";
+	compatible = "friendlyarm,nanopi-m3", "friendlyarm,nanopc-t3",
+		     "nexell,s5p6818";
+
+	/*
+	 * Analog audio on the 3.5 mm jack: SoC I2S0 (master) -> ES8316 codec.
+	 * HDMI audio (SPDIF) is not wired (no display support).
+	 */
+	sound {
+		compatible = "simple-audio-card";
+		simple-audio-card,name = "S5P6818-Audio";
+		simple-audio-card,format = "i2s";
+		simple-audio-card,mclk-fs = <256>;
+		simple-audio-card,bitclock-master = <&sndcpu>;
+		simple-audio-card,frame-master = <&sndcpu>;
+
+		sndcpu: simple-audio-card,cpu {
+			sound-dai = <&i2s0 0>;
+		};
+
+		simple-audio-card,codec {
+			sound-dai = <&es8316>;
+		};
+	};
+};
+
+&mmc2 {		/* on-board eMMC */
+	status = "okay";
+};
+
+&mmc1 {		/* SDIO WiFi */
+	status = "okay";
+};
+
+&uart1 {	/* Bluetooth (AP6212 / BCM43430) */
+	status = "okay";
+
+	bluetooth {
+		compatible = "brcm,bcm43430a1-bt";
+		shutdown-gpios = <&gpio_b 8 GPIO_ACTIVE_HIGH>;	/* BT_REG_ON */
+		max-speed = <2000000>;
+	};
+};
+
+&i2c_0 {
+	es8316: audio-codec@11 {
+		compatible = "everest,es8316";
+		reg = <0x11>;
+		#sound-dai-cells = <0>;
+	};
+};
+
+&i2s0 {
+	status = "okay";
+};

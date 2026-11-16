@@ -1,0 +1,123 @@
+// SPDX-License-Identifier: GPL-2.0
+/*
+ * Shared board definition for the FriendlyElec octa-core S5P6818 boards
+ * (NanoPi M3, NanoPi Fire3, NanoPC-T3 and NanoPC-T3+). It enables only the
+ * peripherals every one of them carries: the debug UART, the micro-SD slot,
+ * the gigabit PHY, the I2C buses, the PWMs and the green status LED. The
+ * board-specific blocks (on-board eMMC, SDIO WiFi, Bluetooth and the ES8316
+ * audio codec) stay disabled here and are enabled by the per-board .dts of the
+ * board that actually has them. RAM size is written into /memory by u-boot
+ * (ft_board_setup), so the value here is only a fallback. See s5p6818.dtsi for
+ * the SoC nodes.
+ */
+
+#include "s5p6818.dtsi"
+#include <dt-bindings/gpio/gpio.h>
+
+/ {
+	aliases {
+		serial0 = &uart0;
+		/*
+		 * Pin the mmc host numbering so mmcblkN is stable: without this
+		 * the non-removable eMMC races the polled SD for mmcblk0 and
+		 * root=/dev/mmcblk0p1 becomes unreliable. SD=0, WiFi(SDIO)=1,
+		 * eMMC=2 -> SD is mmcblk0, eMMC is mmcblk2.
+		 */
+		mmc0 = &mmc0;	/* SD card   (c0062000) */
+		mmc1 = &mmc1;	/* SDIO WiFi (c0068000) */
+		mmc2 = &mmc2;	/* eMMC      (c0069000) */
+	};
+
+	chosen {
+		stdout-path = "serial0:115200n8";
+	};
+
+	/* Placeholder - the real size (1 GiB on Fire3/M3/T3, 2 GiB on T3+) is
+	 * written here by u-boot per board. */
+	memory@40000000 {
+		device_type = "memory";
+		reg = <0x0 0x40000000 0x0 0x40000000>;	/* 1 GiB fallback */
+	};
+
+	/* On-board green status LED (active low). Heartbeat by default. */
+	leds {
+		compatible = "gpio-leds";
+
+		green_led: led-green {
+			label = "green:status";
+			gpios = <&gpio_b 12 GPIO_ACTIVE_LOW>;
+			linux,default-trigger = "heartbeat";
+		};
+	};
+};
+
+&uart0 {
+	status = "okay";
+};
+
+&mmc0 {		/* micro-SD slot */
+	status = "okay";
+};
+
+&gmac0 {
+	status = "okay";
+	phy-handle = <&rtl_phy>;
+	/* RTL8211E hardware reset on gpioe-22 (active low). */
+	snps,reset-gpio = <&gpio_e 22 GPIO_ACTIVE_LOW>;
+	snps,reset-active-low;
+	snps,reset-delays-us = <0 10000 30000>;
+};
+
+&mdio0 {
+	rtl_phy: ethernet-phy@7 {	/* RTL8211E, id 0x001cc915 */
+		reg = <7>;
+	};
+};
+
+&i2c_0 {
+	status = "okay";
+};
+
+&i2c_1 {
+	status = "okay";
+};
+
+&i2c_2 {
+	status = "okay";
+};
+
+&pwm {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pwm0_pins &pwm1_pins &pwm2_pins &pwm3_pins>;
+	status = "okay";
+};
+
+/* HDMI is present on all these boards (WIP bring-up). */
+&display {
+	status = "okay";
+};
+
+/* HDMI audio: SoC S/PDIF-TX -> HDMI S/PDIF input -> monitor. */
+&spdiftx {
+	status = "okay";
+};
+
+/ {
+	spdif_dit: spdif-dit {
+		compatible = "linux,spdif-dit";
+		#sound-dai-cells = <0>;
+	};
+
+	sound_hdmi: sound-hdmi {
+		compatible = "simple-audio-card";
+		simple-audio-card,name = "S5P6818-HDMI";
+
+		simple-audio-card,cpu {
+			sound-dai = <&spdiftx>;
+		};
+
+		simple-audio-card,codec {
+			sound-dai = <&spdif_dit>;
+		};
+	};
+};

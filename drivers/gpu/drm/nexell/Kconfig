@@ -1,0 +1,12 @@
+# SPDX-License-Identifier: GPL-2.0
+config DRM_NEXELL
+	tristate "DRM support for Nexell S5P6818/S5P4418 SoCs (WIP)"
+	depends on DRM && OF
+	select DRM_CLIENT_SELECTION
+	select DRM_GEM_DMA_HELPER
+	select DRM_KMS_HELPER
+	help
+	  Atomic-KMS driver for the Nexell S5Pxx18 display controller (DPC/MLC)
+	  and HDMI output. Work in progress: a single fixed-mode CRTC/plane that
+	  reuses the pipeline the bootloader programmed. Provides /dev/dri/card0
+	  and a framebuffer console on HDMI.

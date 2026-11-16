@@ -1,0 +1,1083 @@
+// SPDX-License-Identifier: GPL-2.0
+/*
+ * Minimal mainline device tree for the Nexell S5P6818 (octa Cortex-A53).
+ *
+ * v1 bring-up: console + SD/eMMC using only generic drivers. The SoC PLLs are
+ * left as configured by u-boot and modelled here as fixed-rate clocks; pin
+ * muxing is inherited from u-boot. The SoC-specific nexell clk/pinctrl/reset
+ * drivers are added in later stages. Addresses/IRQs taken from the running
+ * 4.14 BSP device tree of a NanoPC-T3+.
+ */
+
+#include <dt-bindings/interrupt-controller/arm-gic.h>
+#include <dt-bindings/gpio/gpio.h>
+
+/ {
+	compatible = "nexell,s5p6818";
+	interrupt-parent = <&gic>;
+	#address-cells = <2>;
+	#size-cells = <2>;
+
+	aliases {
+		pinctrl0 = &pinctrl_0;
+	};
+
+	/*
+	 * Secondaries are brought up with PSCI CPU_ON via SMC, implemented by the
+	 * secure monitor installed by the (fork) u-boot - this is the same method
+	 * the 4.14 BSP uses. If that PSCI is unavailable the kernel simply boots
+	 * with CPU0 only; no regression.
+	 */
+	psci {
+		compatible = "arm,psci-0.2";
+		method = "smc";
+	};
+
+	cpus {
+		#address-cells = <2>;
+		#size-cells = <0>;
+
+		/* Octa-core: cluster0 = Aff1 0 (0x0..0x3), cluster1 = Aff1 1 (0x100..0x103) */
+		cpu0: cpu@0 {
+			device_type = "cpu";
+			compatible = "arm,cortex-a53";
+			reg = <0x0 0x0>;
+			enable-method = "psci";
+		};
+		cpu1: cpu@1 {
+			device_type = "cpu";
+			compatible = "arm,cortex-a53";
+			reg = <0x0 0x1>;
+			enable-method = "psci";
+		};
+		cpu2: cpu@2 {
+			device_type = "cpu";
+			compatible = "arm,cortex-a53";
+			reg = <0x0 0x2>;
+			enable-method = "psci";
+		};
+		cpu3: cpu@3 {
+			device_type = "cpu";
+			compatible = "arm,cortex-a53";
+			reg = <0x0 0x3>;
+			enable-method = "psci";
+		};
+		cpu4: cpu@100 {
+			device_type = "cpu";
+			compatible = "arm,cortex-a53";
+			reg = <0x0 0x100>;
+			enable-method = "psci";
+		};
+		cpu5: cpu@101 {
+			device_type = "cpu";
+			compatible = "arm,cortex-a53";
+			reg = <0x0 0x101>;
+			enable-method = "psci";
+		};
+		cpu6: cpu@102 {
+			device_type = "cpu";
+			compatible = "arm,cortex-a53";
+			reg = <0x0 0x102>;
+			enable-method = "psci";
+		};
+		cpu7: cpu@103 {
+			device_type = "cpu";
+			compatible = "arm,cortex-a53";
+			reg = <0x0 0x103>;
+			enable-method = "psci";
+		};
+	};
+
+	/*
+	 * ARM architected timer - COUNTER ONLY (deliberately no "interrupts").
+	 * This SoC's firmware does not route the generic-timer PPIs to the
+	 * non-secure kernel (only GIC SPIs are delivered; the 4.14 BSP avoids the
+	 * arch timer entirely for the same reason). arm64 time_init() panics if
+	 * arch_timer_get_rate() is 0, so this node supplies clock-frequency for
+	 * the rate; with no PPI the arch-timer driver then bails
+	 * (arch_timer_of_init -> "No interrupt available, giving up") BEFORE
+	 * registering any clockevent/clocksource - so it cannot install a
+	 * never-firing clockevent that would freeze jiffies. Real timekeeping
+	 * (clocksource + clockevent) comes from the Nexell PWM timer below
+	 * (samsung,s5p6440-pwm) on GIC SPI 24.
+	 */
+	timer {
+		compatible = "arm,armv8-timer";
+		/* The S5P6818 ARM generic system counter is frozen by design (never
+		 * enabled by firmware; CNTVCT_EL0 reads 0). arm64 time_init() panics
+		 * if arch_timer_get_rate() is 0, so this node supplies a rate and no
+		 * "interrupts" (PPIs are not delivered; the Nexell PWM timer provides
+		 * the clockevent). The get_cycles()/udelay path is redirected to the
+		 * PWM clocksource (CLKSRC_SAMSUNG_PWM sets arch_timer_read_counter),
+		 * which runs at 100 MHz - so the rate here MUST match that. */
+		clock-frequency = <100000000>;
+	};
+
+	/* pclk feeding the PWM timer block (sys-bpclk, fixed from Linux' view). */
+	pwm_timer_clk: pwm-timer-clk {
+		compatible = "fixed-clock";
+		#clock-cells = <0>;
+		clock-frequency = <200000000>;
+		clock-output-names = "pwm-timers";
+	};
+
+	/*
+	 * UART baud clock. This is the ACTUAL rate the SoC's UART clock generator
+	 * runs at as left by u-boot (50.688 MHz), NOT the 153.6 MHz the 4.14 BSP
+	 * reprograms it to via the nexell clk driver. Since this mainline port
+	 * models it as a fixed-clock and does not touch the clock hardware, the
+	 * samsung_tty driver MUST see the real rate so its baud divisor matches
+	 * u-boot's (UBRDIV=26, UDIVSLOT=8 for 115200) - otherwise the console is
+	 * garbage. 50688000 = 440 * 115200 (u-boot's effective 27.5x divisor).
+	 */
+	uart_clk: uart-clk {
+		compatible = "fixed-clock";
+		#clock-cells = <0>;
+		clock-frequency = <50688000>;
+		clock-output-names = "uart";
+	};
+
+	/* SD/MMC controller clock (ciu/biu), 100 MHz on the SD port. */
+	mmc_clk: mmc-clk {
+		compatible = "fixed-clock";
+		#clock-cells = <0>;
+		clock-frequency = <100000000>;
+		clock-output-names = "mmc";
+	};
+
+	thermal-zones {
+		cpu_thermal: cpu-thermal {
+			polling-delay-passive = <1000>;
+			polling-delay = <5000>;
+			thermal-sensors = <&tmuctrl_0>;
+
+			trips {
+				cpu_alert: cpu-alert {
+					temperature = <80000>;	/* 80C */
+					hysteresis = <5000>;
+					type = "passive";
+				};
+				cpu_crit: cpu-crit {
+					temperature = <105000>;	/* 105C */
+					hysteresis = <0>;
+					type = "critical";
+				};
+			};
+		};
+	};
+
+	/*
+	 * WiFi power sequence: WL_REG_ON (gpiob-24, active-low) powers the SDIO
+	 * WiFi. BT_REG_ON (gpiob-8) powers the Bluetooth side of the same combo
+	 * and is owned by the bluetooth serdev node under uart1.
+	 */
+	wifi_pwrseq: wifi-pwrseq {
+		compatible = "mmc-pwrseq-simple";
+		reset-gpios = <&gpio_b 24 GPIO_ACTIVE_LOW>;
+		post-power-on-delay-ms = <50>;
+	};
+
+	soc {
+		compatible = "simple-bus";
+		#address-cells = <1>;
+		#size-cells = <1>;
+		ranges = <0xc0000000 0x0 0xc0000000 0x10000000>;
+
+		/*
+		 * Nexell reset controller: one bit per reset line across 32-bit
+		 * banks (bank = id/32, bit = id%32); a line is released when its
+		 * bit is set (active-low). Driven by mainline reset-simple via the
+		 * "nexell,s5pxx18-reset" compatible. 0xc = 3 banks = 96 reset IDs
+		 * (enough for GMAC = id 64, bank 2 bit 0).
+		 */
+		nexell_reset: reset-controller@c0012000 {
+			compatible = "nexell,s5pxx18-reset";
+			reg = <0xc0012000 0xc>;
+			#reset-cells = <1>;
+		};
+
+		/*
+		 * Display / HDMI (WIP bring-up). Covers DISPLAYTOP (DPC/MLC +
+		 * the disptop clkgen) and the HDMI LINK/CORE block. Phase-1
+		 * driver only ungates the HDMI clocks and reports HPD; the reg
+		 * range is informational for now (the driver maps fixed bases).
+		 */
+		display: display@c0100000 {
+			compatible = "nexell,s5p6818-display";
+			reg = <0xc0100000 0x10000>,	/* DISPLAYTOP */
+			      <0xc0200000 0x30000>;	/* HDMI LINK/CORE/PHY window */
+			reg-names = "displaytop", "hdmi";
+			ddc-i2c-bus = <&i2c_1>;		/* HDMI DDC/EDID */
+			/* HDMI resets: hdmi, video, spdif, tmds, phy (phy last). */
+			resets = <&nexell_reset 13>, <&nexell_reset 14>,
+				 <&nexell_reset 15>, <&nexell_reset 16>,
+				 <&nexell_reset 17>;
+			reset-names = "hdmi", "hdmi_video", "hdmi_spdif",
+				      "hdmi_tmds", "hdmi_phy";
+			status = "disabled";
+		};
+
+		/*
+		 * ARM Mali-400 MP4 GPU (Utgard) for the Lima driver. One shared
+		 * GPU interrupt (SPI 40) is muxed to all sub-blocks. Clock is the
+		 * BCLK-gated VR clock; reset id 65.
+		 */
+		gpu: gpu@c0070000 {
+			compatible = "arm,mali-400", "arm,mali-utgard";
+			reg = <0xc0070000 0x10000>;
+			interrupts = <GIC_SPI 40 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 40 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 40 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 40 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 40 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 40 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 40 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 40 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 40 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 40 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 40 IRQ_TYPE_LEVEL_HIGH>;
+			interrupt-names = "gp", "gpmmu",
+					  "pp0", "ppmmu0", "pp1", "ppmmu1",
+					  "pp2", "ppmmu2", "pp3", "ppmmu3",
+					  "pmu";
+			clocks = <&vr_clk>, <&vr_clk>;
+			clock-names = "bus", "core";
+			resets = <&nexell_reset 65>;
+			status = "okay";
+		};
+
+		/* S/PDIF transmitter - wired to the HDMI audio input. */
+		spdiftx: spdiftx@c0059000 {
+			compatible = "nexell,nexell-spdif-tx";
+			reg = <0xc0059000 0x1000>;
+			#sound-dai-cells = <0>;
+			dmas = <&dma1 6 0>;	/* PL080 #2, signal 6 (global req 22) */
+			dma-names = "tx";
+			clocks = <&spdiftx_clk>;
+			clock-names = "spdif-tx";
+			resets = <&nexell_reset 43>;
+			reset-names = "spdiftx-reset";
+			status = "disabled";
+		};
+
+		/*
+		 * Nexell pin controller + GPIO banks (A-E + ALIVE). Provides pin
+		 * muxing (nexell,pin-function) and the GPIO banks used e.g. for the
+		 * ethernet PHY reset (gpioe-22). Bank interrupts are GIC SPI 53-57
+		 * (A-E) and 4 (ALIVE).
+		 */
+		pinctrl_0: pinctrl@c001a000 {
+			compatible = "nexell,s5p6818-pinctrl";
+			reg = <0xc001a000 0x1000>,	/* GPIOA */
+			      <0xc001b000 0x1000>,	/* GPIOB */
+			      <0xc001c000 0x1000>,	/* GPIOC */
+			      <0xc001d000 0x1000>,	/* GPIOD */
+			      <0xc001e000 0x1000>,	/* GPIOE */
+			      <0xc0010800 0x200>;	/* ALIVE */
+			interrupts = <GIC_SPI 53 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 54 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 55 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 56 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 57 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 4 IRQ_TYPE_LEVEL_HIGH>;
+			#address-cells = <1>;
+			#size-cells = <1>;
+
+			gpio_a: gpioa { gpio-controller; #gpio-cells = <2>;
+				interrupt-controller; #interrupt-cells = <2>; };
+			gpio_b: gpiob { gpio-controller; #gpio-cells = <2>;
+				interrupt-controller; #interrupt-cells = <2>; };
+			gpio_c: gpioc { gpio-controller; #gpio-cells = <2>;
+				interrupt-controller; #interrupt-cells = <2>; };
+			gpio_d: gpiod { gpio-controller; #gpio-cells = <2>;
+				interrupt-controller; #interrupt-cells = <2>; };
+			gpio_e: gpioe { gpio-controller; #gpio-cells = <2>;
+				interrupt-controller; #interrupt-cells = <2>; };
+			alive_0: alive { gpio-controller; #gpio-cells = <2>;
+				interrupt-controller; #interrupt-cells = <2>; };
+
+			/* RGMII pin group for the GbE (GPIO bank E, function 1) */
+			gmac_pins: gmac_pins {
+				gmac_txd: gmac-txd {
+					nexell,pins = "gpioe-7", "gpioe-8", "gpioe-9", "gpioe-10";
+					nexell,pin-function = <1>;
+					nexell,pin-pull = <2>;
+					nexell,pin-strength = <3>;
+				};
+				gmac_rxd: gmac-rxd {
+					nexell,pins = "gpioe-14", "gpioe-15", "gpioe-16", "gpioe-17";
+					nexell,pin-function = <1>;
+					nexell,pin-pull = <2>;
+					nexell,pin-strength = <3>;
+				};
+				gmac_txen: gmac-txen {
+					nexell,pins = "gpioe-11";
+					nexell,pin-function = <1>;
+					nexell,pin-pull = <2>;
+					nexell,pin-strength = <3>;
+				};
+				gmac_mdc: gmac-mdc {
+					nexell,pins = "gpioe-20";
+					nexell,pin-function = <1>;
+					nexell,pin-pull = <2>;
+					nexell,pin-strength = <3>;
+				};
+				gmac_mdio: gmac-mdio {
+					nexell,pins = "gpioe-21";
+					nexell,pin-function = <1>;
+					nexell,pin-pull = <2>;
+					nexell,pin-strength = <3>;
+				};
+				gmac_rxclk: gmac-rxclk {
+					nexell,pins = "gpioe-18";
+					nexell,pin-function = <1>;
+					nexell,pin-pull = <2>;
+					nexell,pin-strength = <3>;
+				};
+				gmac_txclk: gmac-txclk {
+					nexell,pins = "gpioe-24";
+					nexell,pin-function = <1>;
+					nexell,pin-pull = <2>;
+					nexell,pin-strength = <2>;
+				};
+			};
+
+			/* I2C SDA/SCL pin groups (GPIO bank D, function 1). */
+			i2c0_pins: i2c0-pins {
+				nexell,pins = "gpiod-2", "gpiod-3";
+				nexell,pin-function = <1>;
+				nexell,pin-pull = <2>;
+				nexell,pin-strength = <0>;
+			};
+			i2c1_pins: i2c1-pins {
+				nexell,pins = "gpiod-4", "gpiod-5";
+				nexell,pin-function = <1>;
+				nexell,pin-pull = <2>;
+				nexell,pin-strength = <0>;
+			};
+			i2c2_pins: i2c2-pins {
+				nexell,pins = "gpiod-6", "gpiod-7";
+				nexell,pin-function = <1>;
+				nexell,pin-pull = <2>;
+				nexell,pin-strength = <0>;
+			};
+
+			/* PWM output pins (ch0 gpiod-1 fn1; ch1-3 fn2). */
+			pwm0_pins: pwm0-pins {
+				nexell,pins = "gpiod-1";
+				nexell,pin-function = <1>;
+				nexell,pin-pull = <0>;
+				nexell,pin-strength = <0>;
+			};
+			pwm1_pins: pwm1-pins {
+				nexell,pins = "gpioc-13";
+				nexell,pin-function = <2>;
+				nexell,pin-pull = <0>;
+				nexell,pin-strength = <0>;
+			};
+			pwm2_pins: pwm2-pins {
+				nexell,pins = "gpioc-14";
+				nexell,pin-function = <2>;
+				nexell,pin-pull = <0>;
+				nexell,pin-strength = <0>;
+			};
+			pwm3_pins: pwm3-pins {
+				nexell,pins = "gpiod-0";
+				nexell,pin-function = <2>;
+				nexell,pin-pull = <0>;
+				nexell,pin-strength = <0>;
+			};
+
+			/* I2S0 bus: MCLK/BCLK/LRCK/SDO/SDI (bank D, function 1). */
+			i2s0_bus: i2s0-bus {
+				nexell,pins = "gpiod-9", "gpiod-10", "gpiod-11",
+					      "gpiod-12", "gpiod-13";
+				nexell,pin-function = <1>;
+				nexell,pin-pull = <0>;
+				nexell,pin-strength = <0>;
+			};
+
+			/* SDMMC1 (SDIO WiFi): CLK/CMD/DAT0-3 (bank D, function 1). */
+			sdmmc1_cclk: sdmmc1-cclk {
+				nexell,pins = "gpiod-22";
+				nexell,pin-function = <1>;
+				nexell,pin-pull = <2>;
+				nexell,pin-strength = <2>;
+			};
+			sdmmc1_cmd: sdmmc1-cmd {
+				nexell,pins = "gpiod-23";
+				nexell,pin-function = <1>;
+				nexell,pin-pull = <2>;
+				nexell,pin-strength = <1>;
+			};
+			sdmmc1_bus4: sdmmc1-bus4 {
+				nexell,pins = "gpiod-24", "gpiod-25",
+					      "gpiod-26", "gpiod-27";
+				nexell,pin-function = <1>;
+				nexell,pin-pull = <2>;
+				nexell,pin-strength = <1>;
+			};
+
+			/* UART1 (Bluetooth): TXD gpiod-15, RXD gpiod-19 (fn1). */
+			serial1_pins: serial1-pins {
+				nexell,pins = "gpiod-15", "gpiod-19";
+				nexell,pin-function = <1>;
+				nexell,pin-pull = <2>;
+				nexell,pin-strength = <0>;
+			};
+			/* UART1 flow control: RTSn/CTSn gpioc-5/gpioc-6 (fn2). */
+			serial1_flow: serial1-flow {
+				nexell,pins = "gpioc-5", "gpioc-6";
+				nexell,pin-function = <2>;
+				nexell,pin-pull = <2>;
+				nexell,pin-strength = <0>;
+			};
+		};
+
+		gic: interrupt-controller@c0009000 {
+			compatible = "arm,gic-400";
+			#interrupt-cells = <3>;
+			#address-cells = <0>;
+			interrupt-controller;
+			reg = <0xc0009000 0x1000>,	/* GICD */
+			      <0xc000a000 0x2000>;	/* GICC */
+			interrupts = <GIC_PPI 9 IRQ_TYPE_LEVEL_HIGH>;
+		};
+
+		/*
+		 * Nexell PWM/system timer - register-compatible with the Samsung
+		 * S5P PWM timer (TCFG0/1, TCON, TINT_CSTAT@0x44, TCNTB/TCMPB stride
+		 * 12). Drives the kernel clocksource + clockevent. Per-channel GIC
+		 * SPIs (IRQ_TIMERn = SPI 23+n). samsung,pwm-outputs reserves ch0/3/4
+		 * so the driver uses ch2 (free-running clocksource) and ch1 (clock
+		 * event on SPI 24 - the interrupt proven delivered on this SoC).
+		 */
+		timer@c0017000 {
+			compatible = "samsung,s5p6440-pwm";
+			reg = <0xc0017000 0x1000>;
+			interrupts = <GIC_SPI 23 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 24 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 25 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 26 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&pwm_timer_clk>;
+			clock-names = "timers";
+			samsung,pwm-outputs = <0>, <3>, <4>;
+			#pwm-cells = <3>;
+		};
+
+		uart0: serial@c00a1000 {
+			compatible = "nexell,s5p6818-uart";
+			reg = <0xc00a1000 0x1000>;
+			interrupts = <GIC_SPI 7 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&uart_clk>, <&uart_clk>;
+			clock-names = "uart", "clk_uart_baud0";
+			samsung,uart-fifosize = <256>;
+			status = "disabled";
+		};
+
+		/*
+		 * UART1 (@0xc00a1000-1 = 0xc00a0000) for on-board Bluetooth (AP6212
+		 * BCM43430, brcm). u-boot leaves it in reset + ungated: its clk-gen
+		 * gate is kept on via uart1_clk (clk-critical) and the reset is
+		 * released by the driver (resets below). RTS/CTS flow control for BT.
+		 */
+		uart1: serial@c00a0000 {
+			compatible = "nexell,s5p6818-uart";
+			reg = <0xc00a0000 0x1000>;
+			interrupts = <GIC_SPI 6 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&uart1_clk>, <&uart1_clk>;
+			clock-names = "uart", "clk_uart_baud0";
+			resets = <&nexell_reset 51>;	/* RESET_ID_UART1 */
+			samsung,uart-fifosize = <16>;
+			pinctrl-names = "default";
+			pinctrl-0 = <&serial1_pins &serial1_flow>;
+			status = "disabled";
+		};
+
+		mmc0: mmc@c0062000 {
+			compatible = "snps,dw-mshc";
+			reg = <0xc0062000 0x1000>;
+			interrupts = <GIC_SPI 43 IRQ_TYPE_LEVEL_HIGH>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+			clocks = <&mmc_clk>, <&mmc_clk>;
+			clock-names = "biu", "ciu";
+			fifo-depth = <0x20>;
+			clock-frequency = <100000000>;
+			bus-width = <4>;
+			cap-sd-highspeed;
+			broken-cd;
+			disable-wp;
+			status = "disabled";
+		};
+
+		/*
+		 * On-board eMMC on SDMMC2 (@0xc0069000). Non-removable, 4-bit.
+		 * Pins/clock are left as u-boot configured (it boots from here),
+		 * mirroring mmc0's fixed-clock, pinctrl-less setup.
+		 */
+		mmc2: mmc@c0069000 {
+			compatible = "snps,dw-mshc";
+			reg = <0xc0069000 0x1000>;
+			interrupts = <GIC_SPI 45 IRQ_TYPE_LEVEL_HIGH>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+			clocks = <&mmc_clk>, <&mmc_clk>;
+			clock-names = "biu", "ciu";
+			fifo-depth = <0x20>;
+			clock-frequency = <100000000>;
+			bus-width = <4>;	/* u-boot muxes DAT0-3 only */
+			cap-mmc-highspeed;
+			non-removable;
+			disable-wp;
+			status = "disabled";
+		};
+
+		/*
+		 * SDIO WiFi on SDMMC1 (@0xc0068000): a Broadcom combo (brcmfmac).
+		 * u-boot does not touch these pins, so pinctrl is mandatory. The
+		 * chip is powered/reset by wifi_pwrseq (WL_REG_ON) and signals via
+		 * an out-of-band IRQ on gpioc-17.
+		 */
+		mmc1: mmc@c0068000 {
+			compatible = "snps,dw-mshc";
+			reg = <0xc0068000 0x1000>;
+			interrupts = <GIC_SPI 44 IRQ_TYPE_LEVEL_HIGH>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+			clocks = <&mmc_clk>, <&sdhc1_clk>;
+			clock-names = "biu", "ciu";
+			/* u-boot never uses SDMMC1, so it is left held in reset. */
+			resets = <&nexell_reset 40>;	/* RESET_ID_SDMMC1 */
+			reset-names = "reset";
+			fifo-depth = <0x20>;
+			clock-frequency = <100000000>;
+			bus-width = <4>;
+			cap-sd-highspeed;
+			cap-sdio-irq;
+			keep-power-in-suspend;
+			non-removable;
+			disable-wp;
+			pinctrl-names = "default";
+			pinctrl-0 = <&sdmmc1_cclk &sdmmc1_cmd &sdmmc1_bus4>;
+			mmc-pwrseq = <&wifi_pwrseq>;
+			status = "disabled";
+
+			brcmf: wifi@1 {
+				compatible = "brcm,bcm4329-fmac";
+				reg = <1>;
+				interrupt-parent = <&gpio_c>;
+				interrupts = <17 IRQ_TYPE_LEVEL_HIGH>;
+				interrupt-names = "host-wake";
+				brcm,powersave-default-off;
+			};
+		};
+
+		/*
+		 * Nexell PLL provider (CLKPWR block @0xc0010000). Registers the
+		 * core PLLs as global clkdev names "pll0".."pll3" (+ sys clocks),
+		 * which the peripheral clk-gen provider below looks up by name.
+		 * Placed before the clk-gen node so of_clk_init registers the PLLs
+		 * first. 24 MHz reference crystal. (Property name is the driver's
+		 * historical misspelling.)
+		 */
+		clock_pll: clock-controller@c0010000 {
+			compatible = "nexell,s5pxx18,pll";
+			reg = <0xc0010000 0x100>;
+			ref-freuecny = <24000000>;
+			#clock-cells = <1>;
+		};
+
+		/*
+		 * Nexell clk-gen provider. Only the GMAC (GbE) clock is modelled
+		 * here for now (UART/MMC stay fixed-clocks so the console lifeline
+		 * never depends on this driver). The GMAC TX clock is sourced from
+		 * EXT1 (125 MHz board feed) through the two clk-gen divider stages;
+		 * cell-id 10 = CLK_ID_GMAC.
+		 */
+		clocks_gmac: clocks@c00c8000 {
+			compatible = "nexell,s5pxx18,clocks";
+			#address-cells = <1>;
+			#size-cells = <1>;
+			ranges;
+
+			gmac_clk: gmac-clk@c00c8000 {
+				reg = <0xc00c8000 0x100>;
+				clock-output-names = "gmac";
+				cell-id = <10>;
+				clk-step = <2>;
+				clk-input = <0x1f>;
+				clk-input1 = <0>;
+				src-force = <4>;
+				clk-input-ext1 = <125000000>;
+				clock-frequency = <125000000>;
+				/*
+				 * Keep this clock enabled: stmmac/dwmac-generic never
+				 * calls clk_prepare_enable on the "tx_clk", so without
+				 * this the clk-gen module gate (con_enb bit2) is cleared
+				 * by "disable unused clocks" and the GMAC DMA soft-reset
+				 * cannot complete ("Failed to reset the dma"). Mirrors the
+				 * 4.14 BSP dwmac-nexell glue's clk_prepare_enable().
+				 */
+				nexell,clk-critical;
+				#clock-cells = <0>;
+			};
+
+			/*
+			 * USB2 host/OTG module clock (clk-gen @0xc006b000, cell-id
+			 * 32 = CLK_ID_USB2HOST). The OTG clock is shared with this
+			 * one in hardware, so a single gate serves EHCI/OHCI + dwc2.
+			 * Kept enabled (clk-critical) so the controllers' register/DMA
+			 * access and PHY bring-up always have their clock.
+			 */
+			usbhost_clk: usbhost-clk@c006b000 {
+				reg = <0xc006b000 0x100>;
+				clock-output-names = "usbhost";
+				cell-id = <32>;
+				clk-step = <2>;
+				clk-input = <0xf>;
+				clk-input1 = <0x1f>;
+				clock-frequency = <12000000>;
+				nexell,clk-critical;
+				#clock-cells = <0>;
+			};
+
+			/*
+			 * I2C module clocks (gated PCLK; clk-input I_GATE_PCLK,
+			 * clk-step 1). cell-ids 6/7/8 = CLK_ID_I2C_0/1/2. The i2c
+			 * driver enables these itself, so no clk-critical.
+			 */
+			i2c0_clk: i2c0-clk@c00ae000 {
+				reg = <0xc00ae000 0x100>;
+				clock-output-names = "i2c0";
+				cell-id = <6>;
+				clk-step = <1>;
+				clk-input = <0x1000>;
+				#clock-cells = <0>;
+			};
+
+			/* Mali-400 GPU clock (VR): BCLK-gated, cell-id 21. */
+			vr_clk: vr-clk@c00c3000 {
+				reg = <0xc00c3000 0x100>;
+				clock-output-names = "vr";
+				cell-id = <21>;
+				clk-step = <1>;
+				clk-input = <0x2000>;	/* I_GATE_BCLK */
+				#clock-cells = <0>;
+			};
+
+			/* S/PDIF-TX master clock (HDMI audio source), cell-id 11. */
+			spdiftx_clk: spdiftx-clk@c00b8000 {
+				reg = <0xc00b8000 0x100>;
+				clock-output-names = "spdif-tx";
+				cell-id = <11>;
+				clk-step = <1>;
+				clk-input = <0x7>;	/* I_PLL_0_2 */
+				#clock-cells = <0>;
+			};
+			i2c1_clk: i2c1-clk@c00af000 {
+				reg = <0xc00af000 0x100>;
+				clock-output-names = "i2c1";
+				cell-id = <7>;
+				clk-step = <1>;
+				clk-input = <0x1000>;
+				#clock-cells = <0>;
+			};
+			i2c2_clk: i2c2-clk@c00b0000 {
+				reg = <0xc00b0000 0x100>;
+				clock-output-names = "i2c2";
+				cell-id = <8>;
+				clk-step = <1>;
+				clk-input = <0x1000>;
+				#clock-cells = <0>;
+			};
+
+			/*
+			 * I2S0 module clock (clk-gen @0xc00b2000, cell-id 15 =
+			 * CLK_ID_I2S_0). Two-stage divider (clk-step 2) sourced from a
+			 * PLL (clk-input 0xf = PLL0..3 only; no external audio xtal on
+			 * these boards) to derive the I2S master clock (256/384 fs).
+			 * The i2s driver enables/sets the rate itself, so no
+			 * clk-critical here.
+			 */
+			i2s0_clk: i2s0-clk@c00b2000 {
+				reg = <0xc00b2000 0x100>;
+				clock-output-names = "i2s0";
+				cell-id = <15>;
+				clk-step = <2>;
+				clk-input = <0xf>;
+				clk-input1 = <0>;
+				#clock-cells = <0>;
+			};
+
+			/*
+			 * SDMMC1 (SDIO WiFi) module clock (clk-gen @0xc00cc000,
+			 * cell-id 19 = CLK_ID_SDHC_1). u-boot never powers SDMMC1, so
+			 * this gate is off at boot; keep it enabled (clk-critical) so
+			 * the controller is clocked (both the PLL-sourced card clock
+			 * and the PCLK for register access - clk-input 0x1007 =
+			 * CLK_INPUT_SDHC = I_PLL_0_2 | I_GATE_PCLK). ~100 MHz.
+			 */
+			sdhc1_clk: sdhc1-clk@c00cc000 {
+				reg = <0xc00cc000 0x100>;
+				clock-output-names = "sdhc1";
+				cell-id = <19>;
+				clk-step = <1>;
+				clk-input = <0x1007>;
+				clock-frequency = <100000000>;
+				nexell,clk-critical;
+				#clock-cells = <0>;
+			};
+
+			/*
+			 * UART1 module clock (clk-gen @0xc00a8000, cell-id 24 =
+			 * CLK_ID_UART_1) for the Bluetooth UART. u-boot only uses the
+			 * console (UART0), so UART1's gate is off at boot - keep it on
+			 * (clk-critical). clk-input 0x1007 = PLL0-2 + PCLK gate; ~100 MHz.
+			 */
+			uart1_clk: uart1-clk@c00a8000 {
+				reg = <0xc00a8000 0x100>;
+				clock-output-names = "uart1";
+				cell-id = <24>;
+				clk-step = <1>;
+				clk-input = <0x1007>;
+				clock-frequency = <100000000>;
+				nexell,clk-critical;
+				#clock-cells = <0>;
+			};
+		};
+
+		/*
+		 * AHB register/DMA clock for the GMAC. Modelled as a fixed 250 MHz
+		 * clock; the block is ungated by u-boot and the reset release below.
+		 */
+		gmac_pclk: gmac-pclk {
+			compatible = "fixed-clock";
+			#clock-cells = <0>;
+			clock-frequency = <250000000>;
+			clock-output-names = "gmac_pclk";
+		};
+
+		/*
+		 * PL080 DMA APB register clock ("apb_pclk"). Mandatory for the
+		 * primecell probe; left running by u-boot, modelled as fixed.
+		 */
+		dma_pclk: dma-pclk {
+			compatible = "fixed-clock";
+			#clock-cells = <0>;
+			clock-frequency = <200000000>;
+			clock-output-names = "dma_pclk";
+		};
+
+		/* PWM block bus clock ("timers"); the PWM base clock. */
+		pwm_pclk: pwm-pclk {
+			compatible = "fixed-clock";
+			#clock-cells = <0>;
+			clock-frequency = <100000000>;
+			clock-output-names = "pwm_pclk";
+		};
+
+		/* TMU APB interface clock. */
+		tmu_pclk: tmu-pclk {
+			compatible = "fixed-clock";
+			#clock-cells = <0>;
+			clock-frequency = <200000000>;
+			clock-output-names = "tmu_pclk";
+		};
+
+		/*
+		 * Gigabit Ethernet - DesignWare MAC (dwmac1000 class). RGMII to an
+		 * on-board Realtek RTL8211E PHY at MDIO addr 7, whose reset is
+		 * GPIOE-22 (active low, handled in the board dts). Left "disabled"
+		 * here; the board dts enables it and adds the phy handle.
+		 */
+		gmac0: ethernet@c0060000 {
+			compatible = "nexell,s5p6818-gmac", "snps,dwmac";
+			reg = <0xc0060000 0x2000>;
+			interrupts = <GIC_SPI 48 IRQ_TYPE_LEVEL_HIGH>;
+			interrupt-names = "macirq";
+			clocks = <&gmac_pclk>, <&gmac_clk>;
+			clock-names = "stmmaceth", "tx_clk";
+			resets = <&nexell_reset 64>;
+			reset-names = "stmmaceth";
+			phy-mode = "rgmii-id";
+			/*
+			 * MDC clock-range selector. The CSR (stmmaceth) clock is
+			 * ~250 MHz, so the auto-selected CR=0 (/42) drove MDC at
+			 * ~5.9 MHz - over the RTL8211E's 2.5 MHz limit, and the PHY
+			 * never answered ("no phy found"). CR=4 (150-250 MHz, /102)
+			 * gives ~2.45 MHz and the PHY (id 0x001cc915) responds at
+			 * addr 7. Verified live via /dev/mem MDIO scan on hardware.
+			 */
+			snps,clk_csr = <0x4>;
+			snps,multicast-filter-bins = <256>;
+			snps,perfect-filter-entries = <128>;
+			snps,pbl = <32>;
+			pinctrl-names = "default";
+			pinctrl-0 = <&gmac_pins>;
+			status = "disabled";
+
+			mdio0: mdio {
+				#address-cells = <1>;
+				#size-cells = <0>;
+				compatible = "snps,dwmac-mdio";
+			};
+		};
+
+		/*
+		 * USB 2.0 PHY (Nexell tieoff block @0xc0011000). Reuses the mainline
+		 * Samsung USB2 PHY driver with an S5P6818 variant; exposes 3 phys:
+		 * 0 = OTG, 1 = host, 2 = HSIC. Clocked by the usbhost gate.
+		 */
+		usb2_phy: usb-phy@c0011000 {
+			compatible = "nexell,nexell-usb2-phy";
+			reg = <0xc0011000 0x100>;
+			clocks = <&usbhost_clk>;
+			clock-names = "phy";
+			#phy-cells = <1>;
+			status = "okay";
+		};
+
+		/* USB2 EHCI host (high speed). Two type-A ports. */
+		ehci: usb@c0030000 {
+			compatible = "generic-ehci";
+			reg = <0xc0030000 0x10000>;
+			interrupts = <GIC_SPI 50 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&usbhost_clk>;
+			resets = <&nexell_reset 56>;
+			reset-names = "usbhost";
+			phys = <&usb2_phy 1>;
+			phy-names = "usb";
+			status = "okay";
+		};
+
+		/* USB1.1 OHCI host (full/low speed companion). */
+		ohci: usb@c0020000 {
+			compatible = "generic-ohci";
+			reg = <0xc0020000 0x10000>;
+			interrupts = <GIC_SPI 50 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&usbhost_clk>;
+			resets = <&nexell_reset 56>;
+			reset-names = "usbhost";
+			phys = <&usb2_phy 1>;
+			phy-names = "usb";
+			status = "okay";
+		};
+
+		/*
+		 * DesignWare USB2 OTG (dwc2). Uses the OTG phy (cell 0). Run as a
+		 * host for first bring-up; dr_mode can become "otg"/"peripheral".
+		 */
+		dwc2: usb@c0040000 {
+			compatible = "snps,dwc2";
+			reg = <0xc0040000 0x11000>;
+			interrupts = <GIC_SPI 49 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&usbhost_clk>;
+			clock-names = "otg";
+			resets = <&nexell_reset 57>;
+			reset-names = "dwc2";
+			phys = <&usb2_phy 0>;
+			phy-names = "usb2-phy";
+			dr_mode = "host";
+			g-rx-fifo-size = <1064>;
+			g-np-tx-fifo-size = <512>;
+			g-tx-fifo-size = <512 512 512 512 512 256 256 256
+					  256 256 64 64 64 64 64>;
+			status = "okay";
+		};
+
+		/*
+		 * I2C controllers (Samsung S3C2440-compatible, i2c-s3c2410 driver
+		 * with the nexell,s5p6818-i2c quirk = reset-before-enable). Left
+		 * "disabled"; a board dts enables the buses it uses.
+		 */
+		i2c_0: i2c@c00a4000 {
+			compatible = "nexell,s5p6818-i2c";
+			reg = <0xc00a4000 0x100>;
+			interrupts = <GIC_SPI 15 IRQ_TYPE_LEVEL_HIGH>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+			clocks = <&i2c0_clk>;
+			clock-names = "i2c";
+			resets = <&nexell_reset 20>;
+			reset-names = "i2c-reset";
+			pinctrl-names = "default";
+			pinctrl-0 = <&i2c0_pins>;
+			samsung,i2c-sda-delay = <100>;
+			samsung,i2c-max-bus-freq = <100000>;
+			status = "disabled";
+		};
+
+		i2c_1: i2c@c00a5000 {
+			compatible = "nexell,s5p6818-i2c";
+			reg = <0xc00a5000 0x100>;
+			interrupts = <GIC_SPI 16 IRQ_TYPE_LEVEL_HIGH>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+			clocks = <&i2c1_clk>;
+			clock-names = "i2c";
+			resets = <&nexell_reset 21>;
+			reset-names = "i2c-reset";
+			pinctrl-names = "default";
+			pinctrl-0 = <&i2c1_pins>;
+			samsung,i2c-sda-delay = <100>;
+			samsung,i2c-max-bus-freq = <100000>;
+			status = "disabled";
+		};
+
+		i2c_2: i2c@c00a6000 {
+			compatible = "nexell,s5p6818-i2c";
+			reg = <0xc00a6000 0x100>;
+			interrupts = <GIC_SPI 17 IRQ_TYPE_LEVEL_HIGH>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+			clocks = <&i2c2_clk>;
+			clock-names = "i2c";
+			resets = <&nexell_reset 22>;
+			reset-names = "i2c-reset";
+			pinctrl-names = "default";
+			pinctrl-0 = <&i2c2_pins>;
+			samsung,i2c-sda-delay = <100>;
+			samsung,i2c-max-bus-freq = <100000>;
+			status = "disabled";
+		};
+
+			/*
+			 * DMA: two ARM PL080 controllers. periphid 0x00041080 selects
+			 * the mainline amba-pl08x plain-PL080 path. I2S0 uses DMA0
+			 * request lines 12 (tx) / 13 (rx). apb_pclk is the (fixed,
+			 * u-boot-left) bus clock; the block is enabled at reset.
+			 */
+			amba {
+				compatible = "simple-bus";
+				#address-cells = <1>;
+				#size-cells = <1>;
+				ranges;
+
+				dma0: dma@c0000000 {
+					compatible = "arm,pl080", "arm,primecell";
+					arm,primecell-periphid = <0x00041080>;
+					reg = <0xc0000000 0x1000>;
+					interrupts = <GIC_SPI 1 IRQ_TYPE_LEVEL_HIGH>;
+					#dma-cells = <2>;
+					dma-channels = <8>;
+					dma-requests = <16>;
+					lli-bus-interface-ahb1;
+					mem-bus-interface-ahb1;
+					memcpy-burst-size = <256>;
+					memcpy-bus-width = <32>;
+					clocks = <&dma_pclk>;
+					clock-names = "apb_pclk";
+				};
+
+				dma1: dma@c0001000 {
+					compatible = "arm,pl080", "arm,primecell";
+					arm,primecell-periphid = <0x00041080>;
+					reg = <0xc0001000 0x1000>;
+					interrupts = <GIC_SPI 2 IRQ_TYPE_LEVEL_HIGH>;
+					#dma-cells = <2>;
+					dma-channels = <8>;
+					dma-requests = <16>;
+					lli-bus-interface-ahb1;
+					mem-bus-interface-ahb1;
+					memcpy-burst-size = <256>;
+					memcpy-bus-width = <32>;
+					clocks = <&dma_pclk>;
+					clock-names = "apb_pclk";
+				};
+			};
+
+			/*
+			 * I2S0 controller (@0xc0055000, nexell,nexell-i2s). Master
+			 * mode, MCLK out to the codec. TX/RX FIFOs drained by PL080
+			 * DMA0 (req 12 tx / 13 rx). Board dts enables it and wires the
+			 * codec + simple-audio-card.
+			 */
+			i2s0: i2s@c0055000 {
+				compatible = "nexell,nexell-i2s";
+				reg = <0xc0055000 0x1000>;
+				#sound-dai-cells = <1>;
+				dmas = <&dma0 12 0>, <&dma0 13 0>;
+				dma-names = "tx", "rx";
+				clocks = <&i2s0_clk>;
+				clock-names = "i2s0";
+				resets = <&nexell_reset 23>;
+				reset-names = "i2s-reset";
+				pinctrl-names = "default";
+				pinctrl-0 = <&i2s0_bus>;
+				master-mode = <1>;
+				mclk-in = <0>;
+				trans-mode = <0>;
+				frame-bit = <32>;
+				sample-rate = <48000>;
+				pre-supply-mclk = <1>;
+				status = "disabled";
+			};
+
+		/*
+		 * PWM block (@0xc0018000) - separate from the clocksource timer
+		 * @c0017000. Samsung-compatible (pwm-samsung, s5pc100 variant),
+		 * 4 output channels. Board dts adds pinctrl/enable for the
+		 * channel(s) it uses (e.g. the fan).
+		 */
+		pwm: pwm@c0018000 {
+			compatible = "nexell,s5p6818-pwm";
+			reg = <0xc0018000 0x1000>;
+			clocks = <&pwm_pclk>;
+			clock-names = "timers";
+			samsung,pwm-outputs = <0>, <1>, <2>, <3>;
+			#pwm-cells = <3>;
+			status = "disabled";
+		};
+
+		/*
+		 * Thermal management units (exynos_tmu, SOC_ARCH_S5P6818). The
+		 * driver writes the SoC TIEOFF "sensing-start" bit for each. TMU0
+		 * feeds the CPU thermal zone.
+		 */
+		tmuctrl_0: tmu@c0096000 {
+			compatible = "nexell,s5p6818-tmu";
+			reg = <0xc0096000 0x100>;
+			interrupts = <GIC_SPI 60 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&tmu_pclk>;
+			clock-names = "tmu_apbif";
+			#thermal-sensor-cells = <0>;
+			status = "okay";
+		};
+
+		/* Second TMU instance - present but unused (no thermal zone), so
+		 * left disabled to avoid a spurious "Failed to register sensor". */
+		tmuctrl_1: tmu@c0097000 {
+			compatible = "nexell,s5p6818-tmu";
+			reg = <0xc0097000 0x100>;
+			interrupts = <GIC_SPI 61 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&tmu_pclk>;
+			clock-names = "tmu_apbif";
+			#thermal-sensor-cells = <0>;
+			status = "disabled";
+		};
+
+		/*
+		 * RTC in the ALIVE block (@0xc0010c00). Nexell rtc-nx driver.
+		 */
+		rtc: rtc@c0010c00 {
+			compatible = "nexell,nx-rtc";
+			reg = <0xc0010c00 0x100>,	/* RTC */
+			      <0xc0010200 0x100>;	/* ALIVE power gate */
+			interrupts = <GIC_SPI 5 IRQ_TYPE_LEVEL_HIGH>;
+			status = "okay";
+		};
+
+		/*
+		 * Full software-reset restart handler (CLKPWR PWRCONT@0xc0010224 +
+		 * PWRMODE@0xc0010228). Preferred over PSCI SYSTEM_RESET, which only
+		 * does a partial reset on this SoC and reboots unreliably. The
+		 * window overlaps the RTC's clkpwr mapping (PWRCONT is shared) - the
+		 * driver uses a non-reserving of_iomap.
+		 */
+		reboot: reboot@c0010224 {
+			compatible = "nexell,s5p6818-reboot";
+			reg = <0xc0010224 0x8>;
+		};
+	};
+};

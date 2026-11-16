@@ -1,0 +1,5 @@
+# SPDX-License-Identifier: GPL-2.0
+config COMMON_CLK_S5PXX18
+	bool "Nexell S5PXX18 (S5P6818) clock support"
+	depends on ARCH_NEXELL || COMPILE_TEST
+	default ARCH_NEXELL

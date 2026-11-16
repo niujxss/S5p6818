@@ -1,0 +1,16 @@
+// SPDX-License-Identifier: GPL-2.0
+/*
+ * FriendlyElec NanoPi Fire3 (octa-core S5P6818, 1 GiB).
+ * The stripped-down board: micro-SD only, no on-board eMMC, no SDIO WiFi /
+ * Bluetooth and no audio codec. It carries just the peripherals shared by the
+ * whole family - see s5p6818-nanopi3-common.dtsi - so there is nothing to add
+ * here beyond the board identity.
+ */
+
+/dts-v1/;
+#include "s5p6818-nanopi3-common.dtsi"
+
+/ {
+	model = "FriendlyElec NanoPi Fire3";
+	compatible = "friendlyarm,nanopi-fire3", "nexell,s5p6818";
+};

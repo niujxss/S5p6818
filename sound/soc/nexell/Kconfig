@@ -1,0 +1,24 @@
+# SPDX-License-Identifier: GPL-2.0-only
+config SND_SOC_NEXELL
+	tristate "ASoC support for Nexell S5P6818/S5P4418 SoCs"
+	depends on ARCH_NEXELL || COMPILE_TEST
+	help
+	  Say Y or M if you want to add support for codecs attached to the
+	  Nexell S5Pxx18 I2S interface. You will also need to select the
+	  audio interfaces to support below.
+
+config SND_SOC_NEXELL_I2S
+	tristate "Nexell S5P6818/S5P4418 I2S driver"
+	depends on SND_SOC_NEXELL
+	select SND_SOC_GENERIC_DMAENGINE_PCM
+	help
+	  Say Y or M if you want to add support for the I2S controller found
+	  on Nexell S5P6818/S5P4418 SoCs (uses the PL080 DMA engine).
+
+config SND_SOC_NEXELL_SPDIF
+	tristate "Nexell S5P6818/S5P4418 S/PDIF-TX (HDMI audio) driver"
+	depends on SND_SOC_NEXELL
+	select SND_SOC_GENERIC_DMAENGINE_PCM
+	help
+	  Say Y or M for the S/PDIF transmitter, wired internally to the HDMI
+	  controller - this is the audio source for HDMI audio.
