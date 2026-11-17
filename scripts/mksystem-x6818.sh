@@ -38,7 +38,18 @@ echo "==> 注入配置"
 printf '/dev/mmcblk2p2\t/\text4\tdefaults,noatime,errors=remount-ro\t0 1\n' > "$ROOTFS/etc/fstab"
 echo x6818 > "$ROOTFS/etc/hostname"
 printf '127.0.0.1\tlocalhost\n127.0.1.1\tx6818\n' > "$ROOTFS/etc/hosts"
-[ -f /etc/resolv.conf ] && cp /etc/resolv.conf "$ROOTFS/etc/resolv.conf"
+
+# DNS：宿主机（Ubuntu 20.04/22.04）的 resolv.conf 通常只有 127.0.0.53，
+# 那是 systemd-resolved 的桩；板子上没有 systemd-resolved，照抄过去等于没 DNS，
+# apt 会直接解析失败（2026-11-17 踩过）。只在宿主机 DNS 可用时才沿用。
+if grep -q '^nameserver ' /etc/resolv.conf 2>/dev/null &&
+   ! grep -q '^nameserver 127\.0\.0\.53' /etc/resolv.conf; then
+	cp /etc/resolv.conf "$ROOTFS/etc/resolv.conf"
+	say "DNS 沿用宿主机 /etc/resolv.conf"
+else
+	printf 'nameserver 223.5.5.5\nnameserver 119.29.29.29\n' > "$ROOTFS/etc/resolv.conf"
+	say "宿主机 resolv.conf 不可用（127.0.0.53 桩），写入静态 DNS"
+fi
 
 # root 口令：只在当前为空/被锁时设置，避免每次改动 /etc/shadow
 if grep -q '^root:[!*]\|^root::' "$ROOTFS/etc/shadow"; then

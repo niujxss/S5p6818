@@ -1,4 +1,5 @@
 #!/bin/sh
+# x6818 init v2
 # x6818 最小 bring-up init（ubuntu-base 官方 tarball 里没有 systemd/init）
 export PATH=/usr/sbin:/usr/bin:/sbin:/bin
 
@@ -8,13 +9,28 @@ mkdir -p /dev/pts; mount -t devpts none /dev/pts
 mount -t tmpfs none /tmp
 hostname x6818 2>/dev/null
 
-# 网口：静态 IP。rootfs 里没有 ip/ifconfig，用自带的小工具（纯 ioctl）
-# 改 IP：改下面的地址或设置环境变量 X6818_IP
+# DNS：ubuntu-base 自带的 /etc/resolv.conf 指向 127.0.0.53（systemd-resolved 的桩），
+# 本 rootfs 里没有 systemd-resolved，原样留着等于没有 DNS，apt 必然解析失败。
+if ! grep -q '^nameserver ' /etc/resolv.conf 2>/dev/null ||
+   grep -q '^nameserver 127\.0\.0\.53' /etc/resolv.conf 2>/dev/null; then
+	printf 'nameserver 223.5.5.5\nnameserver 119.29.29.29\n' > /etc/resolv.conf
+fi
+
+# 网口：静态 IP + 默认路由。rootfs 里没有 ip/ifconfig，用自带的小工具（纯 ioctl）。
+# 改 IP/网关：设 X6818_IP / X6818_GW，或直接改下面的默认值。
 X6818_IP=${X6818_IP:-192.168.31.150/24}
+X6818_GW=${X6818_GW:-192.168.31.1}
 if [ -x /usr/local/bin/x6818-diag ]; then
 	/usr/local/bin/x6818-diag netup "$X6818_IP" >/dev/null 2>&1 || true
+	/usr/local/bin/x6818-diag route "$X6818_GW" >/dev/null 2>&1 || true
+fi
+
+# 板子没有 systemd：装了 openssh-server 就手工拉起 sshd（没装就静默跳过）
+if [ -x /usr/sbin/sshd ]; then
+	mkdir -p /run/sshd
+	/usr/sbin/sshd 2>/dev/null || true
 fi
 
 echo "--- x6818: mainline Linux up, serial console ttySAC0 ---"
-echo "    ip: ${X6818_IP}"
+echo "    ip: ${X6818_IP}  gw: ${X6818_GW}"
 exec /usr/sbin/agetty -L -a root 115200 ttySAC0 vt100

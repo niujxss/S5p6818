@@ -3,6 +3,7 @@
 //   ./x6818-diag pmic [bus]      读 AXP228 关键寄存器
 //   ./x6818-diag netinfo [if]    看接口状态
 //   ./x6818-diag netup <ip/len> [if]   起网卡并配 IPv4（如 192.168.31.150/24）
+//   ./x6818-diag route [gw] [if]       加默认路由（gw 省略时用 192.168.31.1）
 //   ./x6818-diag fetch <ip> <port> <url路径> <本地文件>   最小 HTTP GET
 #include <stdio.h>
 #include <stdlib.h>
@@ -17,6 +18,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <net/if.h>
+#include <net/route.h>
 #include <linux/i2c.h>
 #include <linux/i2c-dev.h>
 
@@ -170,6 +172,16 @@ static int do_netinfo(const char *name)
 		       (fl & IFF_RUNNING) ? "RUNNING " : "",
 		       (fl & IFF_LOOPBACK) ? "LOOP" : "");
 	}
+
+	printf("\n/proc/net/route:\n");
+	FILE *rf = fopen("/proc/net/route", "r");
+	if (rf) {
+		char line[256];
+		while (fgets(line, sizeof line, rf)) printf("  %s", line);
+		fclose(rf);
+	} else {
+		printf("  (unavailable)\n");
+	}
 	close(s);
 	return 0;
 }
@@ -211,6 +223,48 @@ static int do_netup(const char *cidr, const char *name)
 	printf("configured %s = %s/%d\n", name, tmp, plen);
 	sleep(2);
 	return do_netinfo(name);
+}
+
+/* 加默认路由：netup 只配 IP/掩码，出本网段（apt、公网 DNS）必须有默认路由 */
+static int do_route(const char *gw, const char *name)
+{
+	int s = socket(AF_INET, SOCK_DGRAM, 0);
+	struct rtentry rt;
+	struct sockaddr_in *sin;
+
+	if (s < 0) { perror("socket"); return 1; }
+
+	memset(&rt, 0, sizeof rt);
+	sin = (struct sockaddr_in *)&rt.rt_gateway;
+	sin->sin_family = AF_INET;
+	if (inet_pton(AF_INET, gw, &sin->sin_addr) != 1) {
+		fprintf(stderr, "bad gateway: %s\n", gw);
+		close(s);
+		return 1;
+	}
+	sin = (struct sockaddr_in *)&rt.rt_dst;
+	sin->sin_family = AF_INET;
+	sin->sin_addr.s_addr = INADDR_ANY;
+	sin = (struct sockaddr_in *)&rt.rt_genmask;
+	sin->sin_family = AF_INET;
+	sin->sin_addr.s_addr = INADDR_ANY;
+
+	rt.rt_flags = RTF_UP | RTF_GATEWAY;
+	rt.rt_dev = (char *)name;
+
+	if (ioctl(s, SIOCADDRT, &rt) < 0) {
+		if (errno == EEXIST) {
+			printf("default route already present\n");
+			close(s);
+			return 0;
+		}
+		perror("SIOCADDRT");
+		close(s);
+		return 1;
+	}
+	close(s);
+	printf("default route via %s dev %s\n", gw, name);
+	return 0;
 }
 
 /* ================= 最小 HTTP GET ================= */
@@ -276,7 +330,8 @@ int main(int argc, char **argv)
 		        "  %s pmic [i2c总线号]\n"
 		        "  %s netinfo [接口]\n"
 		        "  %s netup <ip/掩码位> [接口=eth0]\n"
-		        "  %s fetch <ip> <端口> <url路径> <本地文件>\n", argv[0], argv[0], argv[0], argv[0], argv[0]);
+		        "  %s route [网关=192.168.31.1] [接口=eth0]\n"
+		        "  %s fetch <ip> <端口> <url路径> <本地文件>\n", argv[0], argv[0], argv[0], argv[0], argv[0], argv[0]);
 		return 1;
 	}
 	if (!strcmp(argv[1], "mdio"))    return do_mdio();
@@ -286,6 +341,9 @@ int main(int argc, char **argv)
 		if (argc < 3) { fprintf(stderr, "需要 ip/掩码\n"); return 1; }
 		return do_netup(argv[2], argc > 3 ? argv[3] : "eth0");
 	}
+	if (!strcmp(argv[1], "route"))
+		return do_route(argc > 2 ? argv[2] : "192.168.31.1",
+		                argc > 3 ? argv[3] : "eth0");
 	if (!strcmp(argv[1], "fetch")) {
 		if (argc < 6) { fprintf(stderr, "需要 <ip> <端口> <路径> <文件>\n"); return 1; }
 		return do_fetch(argv[2], atoi(argv[3]), argv[4], argv[5]);

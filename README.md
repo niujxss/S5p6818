@@ -41,10 +41,16 @@ S5p6818-rootfs/
 │   ├── 1g-bl1-nanopi.bin                     BL1（28,800 B）
 │   ├── 2g-bl1-nanopi.bin                     BL1，2 GiB 内存版本
 │   └── ROLLBACK-ubootpak-vendor.bin          原厂 u-boot 存档（341,524 B）
+├── init/
+│   └── init                                  最小 init 模板（mksystem 注入 /usr/sbin/init）
+├── diag/
+│   ├── x6818-diag.c                          板上诊断/网络小工具源码
+│   └── x6818-diag                            aarch64 静态二进制（交叉编译）
 ├── scripts/
 │   ├── mksystem-x6818.sh                     产出 eMMC(p2) 用的 ext4 镜像  ← 常用
 │   ├── mkimage-x6818.sh                      产出 SD 卡完整镜像（本板没用上）
-│   └── build-kernel.sh                       调用姊妹内核仓库编译
+│   ├── build-kernel.sh                       调用姊妹内核仓库编译
+│   └── board-enable-ssh.sh                   ★板上跑一次：修 DNS/路由 + 装 openssh + root 公钥
 └── out/                                      生成物（git 忽略）
 ```
 
@@ -115,6 +121,39 @@ cd scripts
 ./mksystem-x6818.sh                   # 重新打包，自动带上新 Image/dtb
 ```
 
+### 3.4 板子联网 + 开 SSH（一次性）
+
+板子第一次只能走串口。在板上跑 `scripts/board-enable-ssh.sh`（由服务器 HTTP 服务出去，
+板上用 `x6818-diag fetch` 取），跑完就能从 PC `ssh root@192.168.31.150`。
+
+```sh
+# 服务器：~/2026workspace/out 作为 HTTP 根
+cd ~/2026workspace/out && python3 -m http.server 8000 --bind 0.0.0.0 &
+
+# 板子（串口，root）：
+/usr/local/bin/x6818-diag fetch 192.168.31.146 8000 /board-enable-ssh.sh /tmp/b.sh
+sh /tmp/b.sh
+
+# PC：
+ssh root@192.168.31.150
+```
+
+脚本做的事（都可逆）：
+
+| 步骤 | 内容 | 为什么 |
+|---|---|---|
+| 换 diag | 取新版 `x6818-diag` 覆盖 `/usr/local/bin/` | 新版多了 `route` 子命令 |
+| DNS | `/etc/resolv.conf` 若指向 `127.0.0.53` 就改成 223.5.5.5 / 119.29.29.29 | ubuntu-base 带的是 systemd-resolved 的桩，板上没有 systemd |
+| 路由 | `x6818-diag route 192.168.31.1` | `netup` 只配 IP/掩码，出网段必须有默认路由 |
+| 装包 | `apt-get install openssh-server` | 板上没有 ssh |
+| 免密 | root 的 `authorized_keys` ← 开发机 `~/.ssh/id_rsa.pub` | root 只许公钥登录 |
+| init | `/usr/sbin/init` 换成 v2（DNS/路由/sshd 自启），旧的存 `init.bak` | 板子没有 systemd |
+
+成功后 `/etc/ssh/sshd_config` 是 `PermitRootLogin prohibit-password` + `UsePAM no`。
+
+> 铁律：`x6818-diag netup` 只配 IP 和掩码，**不加默认路由**。没有默认路由时只能访问
+> 192.168.31.0/24（HTTP 传文件可以），但 apt 和公网 DNS 全部失败。
+
 ---
 
 ## 4. 怎么刷进板子
@@ -130,8 +169,9 @@ cd scripts
 
 | 要更新什么 | 可行方式 |
 |---|---|
-| 内核 / 设备树 | **优盘**：`mount -t vfat /dev/sda1 /mnt && cp /mnt/Image /boot/Image && sync && reboot` |
+| 内核 / 设备树 | **HTTP**：`x6818-diag fetch 192.168.31.146 8000 /Image /boot/Image`（见手册 5.6）；优盘仍然可用 |
 | rootfs 里的个别文件 | 直接在板子上编辑（rootfs 可写） |
+| 装软件 | 有网后 `apt-get install`（前提：默认路由 + 可用 DNS，见 §3.4） |
 | **整个 rootfs** | **暂时没有干净通道**，见 §7 待办 |
 
 板子上的 `/boot` 就是本仓库 `rootfs/boot` 的镜像，一一对应。
@@ -199,8 +239,8 @@ mke2fs -O ^64bit,^metadata_csum,^metadata_csum_seed -I 256
 
 | # | 问题 | 影响 |
 |---|---|---|
-| 1 | 网口 PHY 未识别（`stmmac` 起来但无 PHY 日志） | 没网络，apt 装不了东西；排查方向：MDIO 地址 4、GPIOE-22 复位极性（`snps,reset-active-low` 与 `GPIO_ACTIVE_LOW` 可能叠加反了） |
-| 2 | 无 systemd | 只有自写 init；有网络后可 `apt install systemd` |
+| 1 | ~~网口 PHY 未识别~~ | **已解决**（2026-11-17）：PHY 在 MDIO 4，接口一 up 就 1Gbps；真正缺的是 rootfs 里没有 `ip`、没配默认路由、DNS 还指向 `127.0.0.53`。现在 `netup` + `route` + 静态 DNS 一起解决 |
+| 2 | 无 systemd | 只有自写 init；已能 apt，可装 openssh-server（见 §3.4） |
 | 3 | **整盘替换 rootfs 无通道** | 建议在 p3（`cache`，428 MiB 空着）放一个救援系统，从它启动后 `dd` 覆盖 p2 |
 | 4 | 未装内核模块 | `/lib/modules` 不存在；开机必需驱动都已 `=y`，音频等 `=m` 的用不了 |
 | 5 | u-boot 无 UDC / 无网络命令 | 无法 fastboot、无法网络启动 |
