@@ -65,19 +65,13 @@ deb http://mirrors.tuna.tsinghua.edu.cn/ubuntu-ports/ jammy-security main restri
 APT
 
 # 最小 init：ubuntu-base 的 tarball 里没有 systemd/init
-cat > "$ROOTFS/usr/sbin/init" <<'INIT'
-#!/bin/sh
-# 最小 bring-up init（ubuntu-base 不含 systemd）
-export PATH=/usr/sbin:/usr/bin:/sbin:/bin
-mount -t proc  none /proc
-mount -t sysfs none /sys
-mkdir -p /dev/pts; mount -t devpts none /dev/pts
-mount -t tmpfs none /tmp
-hostname x6818 2>/dev/null
-echo "--- x6818: mainline Linux up, serial console ttySAC0 ---"
-exec /usr/sbin/agetty -L -a root 115200 ttySAC0 vt100
-INIT
-chmod 755 "$ROOTFS/usr/sbin/init"
+install -m 755 "$REPO/init/init" "$ROOTFS/usr/sbin/init"
+
+# 诊断/网络工具（纯静态，无需依赖）
+if [ -x "$REPO/diag/x6818-diag" ]; then
+	mkdir -p "$ROOTFS/usr/local/bin"
+	install -m 755 "$REPO/diag/x6818-diag" "$ROOTFS/usr/local/bin/x6818-diag"
+fi
 printf 'ttySAC0\ntty1\nconsole\n' > "$ROOTFS/etc/securetty"
 
 # ---------- 3. 放入内核与设备树 ----------
