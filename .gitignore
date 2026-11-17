@@ -1,0 +1,6 @@
+# 生成的镜像
+/out/*
+!/out/.gitkeep
+# 内核产物：体积大且随每次编译变化，由脚本从内核树注入
+/rootfs/boot/Image
+/rootfs/boot/dtb/
