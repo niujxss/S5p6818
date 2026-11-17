@@ -114,6 +114,13 @@ truncate -s $(( SIZE_MB * 1024 * 1024 )) "$OUT"
 # u-boot 2016.01 的 ext4 驱动不认 64bit / metadata_csum
 mke2fs -q -F -t ext4 -O ^64bit,^metadata_csum,^metadata_csum_seed -I 256 \
        -L system -d "$ROOTFS" "$OUT"
+
+# tar --no-same-owner 解包会把 /root 记成构建用户（1000:1000）。dropbear/sshd 的
+# StrictModes 要求 root 家目录属主是 root，否则直接拒绝 root 的公钥登录（2026-11-17 踩过）。
+# 用 debugfs 直接改镜像里的 inode 属主，不需要 root 权限。
+printf 'sif /root uid 0\nsif /root gid 0\n' | debugfs -w -f - "$OUT" >/dev/null 2>&1 ||
+	echo "   !! 改 /root 属主失败（debugfs），开机后由 init 兜底"
+
 e2fsck -fn "$OUT" >/dev/null 2>&1 && say "fsck 通过"
 
 # ---------- 5. 汇总 ----------

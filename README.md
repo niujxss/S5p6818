@@ -46,11 +46,14 @@ S5p6818-rootfs/
 ├── diag/
 │   ├── x6818-diag.c                          板上诊断/网络小工具源码
 │   └── x6818-diag                            aarch64 静态二进制（交叉编译）
+├── keys/
+│   └── root_authorized_keys.pub              允许登录板子的公钥（开发机 id_rsa.pub）
 ├── scripts/
 │   ├── mksystem-x6818.sh                     产出 eMMC(p2) 用的 ext4 镜像  ← 常用
 │   ├── mkimage-x6818.sh                      产出 SD 卡完整镜像（本板没用上）
 │   ├── build-kernel.sh                       调用姊妹内核仓库编译
-│   └── board-enable-ssh.sh                   ★板上跑一次：修 DNS/路由 + 装 openssh + root 公钥
+│   ├── board-bootstrap.sh                    ★板上跑一次：网络 + init v3 + SSH（见 §3.4）
+│   └── make-ssh-bundle.sh                    服务器上打离线 SSH 包（dropbear + 依赖 + root 公钥）
 └── out/                                      生成物（git 忽略）
 ```
 
@@ -123,36 +126,43 @@ cd scripts
 
 ### 3.4 板子联网 + 开 SSH（一次性）
 
-板子第一次只能走串口。在板上跑 `scripts/board-enable-ssh.sh`（由服务器 HTTP 服务出去，
-板上用 `x6818-diag fetch` 取），跑完就能从 PC `ssh root@192.168.31.150`。
+板子第一次只能走串口。`scripts/board-bootstrap.sh` 一次把"网络 + init v3 + SSH"全部搞好：
 
 ```sh
-# 服务器：~/2026workspace/out 作为 HTTP 根
+# 服务器：~/2026workspace/out 作为 HTTP 根（这个服务平时就开着）
 cd ~/2026workspace/out && python3 -m http.server 8000 --bind 0.0.0.0 &
 
 # 板子（串口，root）：
-/usr/local/bin/x6818-diag fetch 192.168.31.146 8000 /board-enable-ssh.sh /tmp/b.sh
+/usr/local/bin/x6818-diag fetch 192.168.31.146 8000 /board-bootstrap.sh /tmp/b.sh
 sh /tmp/b.sh
 
 # PC：
 ssh root@192.168.31.150
 ```
 
-脚本做的事（都可逆）：
+脚本做的事（幂等、可重复跑）：
 
 | 步骤 | 内容 | 为什么 |
 |---|---|---|
-| 换 diag | 取新版 `x6818-diag` 覆盖 `/usr/local/bin/` | 新版多了 `route` 子命令 |
-| DNS | `/etc/resolv.conf` 若指向 `127.0.0.53` 就改成 223.5.5.5 / 119.29.29.29 | ubuntu-base 带的是 systemd-resolved 的桩，板上没有 systemd |
-| 路由 | `x6818-diag route 192.168.31.1` | `netup` 只配 IP/掩码，出网段必须有默认路由 |
-| 装包 | `apt-get install openssh-server` | 板上没有 ssh |
-| 免密 | root 的 `authorized_keys` ← 开发机 `~/.ssh/id_rsa.pub` | root 只许公钥登录 |
-| init | `/usr/sbin/init` 换成 v2（DNS/路由/sshd 自启），旧的存 `init.bak` | 板子没有 systemd |
+| 网络 | `x6818-diag netup` + `route 192.168.31.1` | `netup` 只配 IP/掩码，出网段必须有默认路由 |
+| DNS | resolv.conf 指向 `127.0.0.53` 就改成 223.5.5.5 / 119.29.29.29 | ubuntu-base 带的是 systemd-resolved 的桩，板上没有 systemd |
+| IPv6 | `disable_ipv6=1` + apt 强制 IPv4 | DNS 先给 AAAA，板子没有 v6 出口，apt 会卡死 |
+| THP | `transparent_hugepage=never` | 开 THP 时 apt 建包缓存会 panic（2026-11-17 复现两次） |
+| /root | `chown root:root /root` | 镜像解包成 1000:1000，SSH 的 StrictModes 会拒绝 root 公钥 |
+| init | 换成 `init v3`（旧的备份 `init.bak`） | v3 修了 Ctrl-C 杀 PID 1 的 panic，并让上面这些开机自启 |
+| SSH | 没有 ssh 就装离线 dropbear 包 | 板上没有 ssh，`/ssh-bundle.tar.gz` 里是 dropbear + 依赖 + root 公钥 |
 
-成功后 `/etc/ssh/sshd_config` 是 `PermitRootLogin prohibit-password` + `UsePAM no`。
+离线 SSH 包由 `scripts/make-ssh-bundle.sh` 生成（服务器上跑，产出 `out/ssh-bundle.tar.gz`）：
 
-> 铁律：`x6818-diag netup` 只配 IP 和掩码，**不加默认路由**。没有默认路由时只能访问
+```sh
+cd scripts && ./make-ssh-bundle.sh     # PUBKEY=~/.ssh/id_rsa.pub，MIRROR 可覆盖
+```
+
+> 铁律 1：`x6818-diag netup` 只配 IP 和掩码，**不加默认路由**。没有默认路由时只能访问
 > 192.168.31.0/24（HTTP 传文件可以），但 apt 和公网 DNS 全部失败。
+>
+> 铁律 2：**串口里不要按 Ctrl-C**（旧 init）。老 init 用 `exec agetty`，login/bash 就是 PID 1，
+> Ctrl-C 会把它杀掉 → `Kernel panic: Attempted to kill init`。init v3 已改成 PID 1 循环拉 getty。
 
 ---
 
@@ -240,10 +250,13 @@ mke2fs -O ^64bit,^metadata_csum,^metadata_csum_seed -I 256
 | # | 问题 | 影响 |
 |---|---|---|
 | 1 | ~~网口 PHY 未识别~~ | **已解决**（2026-11-17）：PHY 在 MDIO 4，接口一 up 就 1Gbps；真正缺的是 rootfs 里没有 `ip`、没配默认路由、DNS 还指向 `127.0.0.53`。现在 `netup` + `route` + 静态 DNS 一起解决 |
-| 2 | 无 systemd | 只有自写 init；已能 apt，可装 openssh-server（见 §3.4） |
+| 2 | 无 systemd | 只有自写 init；apt 已可用（装上 iproute2/ethtool/openssh-client/less），要 systemd 再单独装 |
 | 3 | **整盘替换 rootfs 无通道** | 建议在 p3（`cache`，428 MiB 空着）放一个救援系统，从它启动后 `dd` 覆盖 p2 |
 | 4 | 未装内核模块 | `/lib/modules` 不存在；开机必需驱动都已 `=y`，音频等 `=m` 的用不了 |
 | 5 | u-boot 无 UDC / 无网络命令 | 无法 fastboot、无法网络启动 |
+| 6 | 镜像只有 256 MB | 分区其实有 377 MiB；首次启动要 `resize2fs /dev/mmcblk2p2`（已做过，现在是 690 MiB），否则 apt 会写满 |
+| 7 | THP 会触发 panic | 开 THP 时 apt 建包缓存会 panic（已复现两次）；init v3 固定 `never` |
+| 8 | 镜像里 /root 属主是 1000 | `mksystem` 用 `tar --no-same-owner` 解包导致；已用 debugfs 修正，init 里也兜底 chown |
 
 ---
 

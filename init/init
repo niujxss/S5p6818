@@ -1,7 +1,7 @@
 #!/bin/sh
-# x6818 init v2
+# x6818 init v3
 # x6818 最小 bring-up init（ubuntu-base 官方 tarball 里没有 systemd/init）
-export PATH=/usr/sbin:/usr/bin:/sbin:/bin
+export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
 mount -t proc  none /proc
 mount -t sysfs none /sys
@@ -9,15 +9,26 @@ mkdir -p /dev/pts; mount -t devpts none /dev/pts
 mount -t tmpfs none /tmp
 hostname x6818 2>/dev/null
 
-# DNS：ubuntu-base 自带的 /etc/resolv.conf 指向 127.0.0.53（systemd-resolved 的桩），
-# 本 rootfs 里没有 systemd-resolved，原样留着等于没有 DNS，apt 必然解析失败。
+# 1) /root 的属主：镜像用 tar --no-same-owner 解包，/root 会变成 1000:1000，
+#    dropbear/sshd 的 StrictModes 会直接拒绝 root 的公钥登录（2026-11-17 踩过）。
+chown root:root /root 2>/dev/null || true
+
+# 2) DNS：ubuntu-base 自带的 /etc/resolv.conf 指向 127.0.0.53（systemd-resolved 的桩），
+#    本 rootfs 里没有 systemd-resolved，原样留着等于没有 DNS。
 if ! grep -q '^nameserver ' /etc/resolv.conf 2>/dev/null ||
    grep -q '^nameserver 127\.0\.0\.53' /etc/resolv.conf 2>/dev/null; then
 	printf 'nameserver 223.5.5.5\nnameserver 119.29.29.29\n' > /etc/resolv.conf
 fi
 
-# 网口：静态 IP + 默认路由。rootfs 里没有 ip/ifconfig，用自带的小工具（纯 ioctl）。
-# 改 IP/网关：设 X6818_IP / X6818_GW，或直接改下面的默认值。
+# 3) 关 IPv6：本板没有 v6 出口，而 DNS 会先返回 AAAA，apt/curl 会卡在连不上的
+#    IPv6 上（表现为 apt 停在某个百分比不动，2026-11-17 踩过）。
+if [ -e /proc/sys/net/ipv6/conf/all/disable_ipv6 ]; then
+	echo 1 > /proc/sys/net/ipv6/conf/all/disable_ipv6 2>/dev/null || true
+	echo 1 > /proc/sys/net/ipv6/conf/default/disable_ipv6 2>/dev/null || true
+fi
+
+# 4) 网口：静态 IP + 默认路由。rootfs 里没有 ip/ifconfig，用自带的小工具（纯 ioctl）。
+#    改 IP/网关：设 X6818_IP / X6818_GW，或直接改下面的默认值。
 X6818_IP=${X6818_IP:-192.168.31.150/24}
 X6818_GW=${X6818_GW:-192.168.31.1}
 if [ -x /usr/local/bin/x6818-diag ]; then
@@ -25,12 +36,32 @@ if [ -x /usr/local/bin/x6818-diag ]; then
 	/usr/local/bin/x6818-diag route "$X6818_GW" >/dev/null 2>&1 || true
 fi
 
-# 板子没有 systemd：装了 openssh-server 就手工拉起 sshd（没装就静默跳过）
-if [ -x /usr/sbin/sshd ]; then
+# 5) SSH：dropbear（板上现装的）或 openssh，谁在就用谁
+if [ -x /usr/sbin/dropbear ]; then
+	mkdir -p /etc/dropbear
+	pgrep -x dropbear >/dev/null 2>&1 || /usr/sbin/dropbear -R -p 22 2>/dev/null || true
+elif [ -x /usr/sbin/sshd ]; then
 	mkdir -p /run/sshd
-	/usr/sbin/sshd 2>/dev/null || true
+	pgrep -x sshd >/dev/null 2>&1 || /usr/sbin/sshd 2>/dev/null || true
 fi
+
+# 6) 关 THP：这块板子上开 THP 时，apt "Reading package lists" 会把内核搞 panic
+#    （2026-11-17 复现两次，关掉后 apt update/install 连续正常）。
+if [ -w /sys/kernel/mm/transparent_hugepage/enabled ]; then
+	echo never > /sys/kernel/mm/transparent_hugepage/enabled 2>/dev/null || true
+fi
+
+# 7) panic 后 10 秒自动重启：无人值守时挂了能自己回来（init 会重新拉起 sshd）
+echo 10 > /proc/sys/kernel/panic 2>/dev/null || true
 
 echo "--- x6818: mainline Linux up, serial console ttySAC0 ---"
 echo "    ip: ${X6818_IP}  gw: ${X6818_GW}"
-exec /usr/sbin/agetty -L -a root 115200 ttySAC0 vt100
+
+# 8) 串口登录：★这里绝对不能 exec！
+#    一旦 exec，agetty/login/bash 就成了 PID 1；在串口里按 Ctrl-C 会把 PID 1 杀掉，
+#    内核直接 Kernel panic: Attempted to kill init（2026-11-17 踩过）。
+#    保持 init 自己是 PID 1，用循环把 getty 当子进程反复拉起。
+while :; do
+	/sbin/agetty -L -a root 115200 ttySAC0 vt100
+	sleep 1
+done
