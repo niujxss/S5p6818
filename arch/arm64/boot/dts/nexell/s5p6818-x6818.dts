@@ -135,7 +135,174 @@
 			interrupts = <4 IRQ_TYPE_EDGE_FALLING>;
 			interrupt-controller;
 			#interrupt-cells = <1>;
-			status = "okay";
+
+			/*
+			 * Power rails.
+			 *
+			 * The live register dump (x6818-diag pmic) and the vendor
+			 * rail map (axp22-cfg.h) agree on what is already up:
+			 *   0x10 = 0xff  DC5LDO, DCDC1-5, ALDO1, ALDO2
+			 *   0x12 = 0x09  ELDO1, DLDO1
+			 *   0x13 = 0x81  ALDO3
+			 * Those eleven therefore carry "regulator-always-on".  It
+			 * matters: at late_initcall() the regulator core powers down
+			 * any rail that is enabled but unclaimed, and this board has
+			 * no consumers for most of them - the vendor BSP simply
+			 * relies on the PMIC's power-on defaults to keep SoC, DRAM,
+			 * eMMC and the PHY alive.
+			 *
+			 * The voltage windows below are the chip's full range as
+			 * described by axp22x_regulators[] in
+			 * drivers/regulator/axp20x-regulator.c.  They are
+			 * intentionally not tightened to the measured value:
+			 * machine_constraints_voltage() only writes when a rail sits
+			 * outside its window, and the PMIC defaults are inside.
+			 *
+			 * DLDO2 (1.8 V cam), DLDO3, DLDO4, ELDO2 (3.3 V wifi) and
+			 * ELDO3 are down and unused here; they are described anyway
+			 * so a future consumer can turn one on.
+			 */
+			regulators {
+				x-powers,dcdc-freq = <3000>;	/* AXP22x default */
+
+				dcdc1 {
+					regulator-name = "dcdc1";
+					regulator-min-microvolt = <1600000>;
+					regulator-max-microvolt = <3400000>;
+					regulator-always-on;
+				};
+
+				dcdc2 {
+					regulator-name = "dcdc2";
+					regulator-min-microvolt = <600000>;
+					regulator-max-microvolt = <1540000>;
+					regulator-always-on;
+				};
+
+				dcdc3 {
+					regulator-name = "dcdc3";
+					regulator-min-microvolt = <600000>;
+					regulator-max-microvolt = <1860000>;
+					regulator-always-on;
+				};
+
+				dcdc4 {
+					regulator-name = "dcdc4";
+					regulator-min-microvolt = <600000>;
+					regulator-max-microvolt = <1540000>;
+					regulator-always-on;
+				};
+
+				dcdc5 {
+					regulator-name = "dcdc5";
+					regulator-min-microvolt = <1000000>;
+					regulator-max-microvolt = <2550000>;
+					regulator-always-on;
+				};
+
+				dc5ldo {
+					regulator-name = "dc5ldo";
+					regulator-min-microvolt = <700000>;
+					regulator-max-microvolt = <1400000>;
+					regulator-always-on;
+				};
+
+				aldo1 {
+					regulator-name = "aldo1";
+					regulator-min-microvolt = <700000>;
+					regulator-max-microvolt = <3300000>;
+					regulator-always-on;
+				};
+
+				aldo2 {
+					regulator-name = "aldo2";
+					regulator-min-microvolt = <700000>;
+					regulator-max-microvolt = <3300000>;
+					regulator-always-on;
+				};
+
+				aldo3 {
+					regulator-name = "aldo3";
+					regulator-min-microvolt = <700000>;
+					regulator-max-microvolt = <3300000>;
+					regulator-always-on;
+				};
+
+				dldo1 {
+					regulator-name = "dldo1";
+					regulator-min-microvolt = <700000>;
+					regulator-max-microvolt = <3300000>;
+					regulator-always-on;
+				};
+
+				dldo2 {
+					regulator-name = "dldo2";
+					regulator-min-microvolt = <700000>;
+					regulator-max-microvolt = <3300000>;
+				};
+
+				dldo3 {
+					regulator-name = "dldo3";
+					regulator-min-microvolt = <700000>;
+					regulator-max-microvolt = <3300000>;
+				};
+
+				dldo4 {
+					regulator-name = "dldo4";
+					regulator-min-microvolt = <700000>;
+					regulator-max-microvolt = <3300000>;
+				};
+
+				eldo1 {
+					regulator-name = "eldo1";
+					regulator-min-microvolt = <700000>;
+					regulator-max-microvolt = <3300000>;
+					regulator-always-on;
+				};
+
+				eldo2 {
+					regulator-name = "eldo2";
+					regulator-min-microvolt = <700000>;
+					regulator-max-microvolt = <3300000>;
+				};
+
+				eldo3 {
+					regulator-name = "eldo3";
+					regulator-min-microvolt = <700000>;
+					regulator-max-microvolt = <3300000>;
+				};
+			};
+
+			/*
+			 * The PMIC's two GPIOs.  On this board PMIC GPIO0 is an
+			 * input from the VBUS-detect divider (CFG_GPIO_PMIC_VUSB_DET)
+			 * and nothing else is wired to them, so they are exposed
+			 * read-only to userspace via the pinctrl/gpio driver.
+			 */
+			axp_gpio: gpio {
+				compatible = "x-powers,axp221-gpio";
+				gpio-controller;
+				#gpio-cells = <2>;
+			};
+
+			/* Battery/charger telemetry.  No battery is fitted, but the
+			 * fuel gauge and the VBUS/ACIN state are still readable. */
+			axp_adc: adc {
+				compatible = "x-powers,axp221-adc";
+				#io-channel-cells = <1>;
+			};
+
+			axp_battery: battery {
+				compatible = "x-powers,axp221-battery-power-supply";
+			};
+
+			axp_ac: ac-power {
+				compatible = "x-powers,axp221-ac-power-supply";
+			};
+
+			axp_usb: usb-power {
+				compatible = "x-powers,axp221-usb-power-supply";
+			};
 		};
 	};
 
